@@ -10,6 +10,11 @@ app.use(express.json());
 // Boot up the database connection
 connectDB();
 
+// --- LINK YOUR ROUTES HERE ---
+// This imports your medication file and points the path /api/medications to it
+app.use('/api/medications', require('./routes/medication'));
+
+
 // A simple route to test if the backend server is running
 app.get('/', (req, res) => {
     res.send('MediTrac Backend Server is Running!');

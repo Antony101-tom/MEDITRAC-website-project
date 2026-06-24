@@ -13,6 +13,7 @@
   "dependencies": {
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
-    "mssql": "^12.5.5"
+    "mssql": "^12.5.5",
+    "pg": "^8.22.0"
   }
 }
