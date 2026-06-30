@@ -855,7 +855,7 @@ body {
 }
 
 .process-section {
-    background: #F7F4EC;
+    background: #E7F4FD;
     width: 85%;
     margin: auto;
     margin-bottom: 70px;
@@ -875,6 +875,7 @@ body {
     max-width: 480px;
     width: 100%;
     height: auto;
+    background: transparent;
 }
 
 .process-text {
