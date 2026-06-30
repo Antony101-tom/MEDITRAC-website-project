@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pharmacy Control Center - Meditrac</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* DASHBOARD LAYOUT GRID */
+        body { background-color: #f4f7f9; display: flex; min-height: 100vh; overflow-x: hidden; }
+        
+        .dashboard-container { display: flex; width: 100%; margin-top: 75px; }
+
+        /* SIDEBAR PANEL */
+        .sidebar { width: 260px; background: #ffffff; border-right: 1px solid #e2e8f0; padding: 30px 20px; display: flex; flex-direction: column; gap: 8px; position: fixed; height: calc(100vh - 75px); left: 0; top: 75px; }
+        .sidebar-link { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 8px; color: #4a5568; font-weight: 600; font-size: 0.95rem; transition: all 0.2s; }
+        .sidebar-link:hover, .sidebar-link.active { background: #e6fffa; color: #319795; }
+        
+        /* MAIN WORKSPACE */
+        .main-content { flex: 1; margin-left: 260px; padding: 40px 5%; text-align: left; background: #f8fafc; min-height: calc(100vh - 75px); }
+        
+        /* PREMIUM HEADER */
+        .welcome-banner { background: linear-gradient(135deg, #1d4ed8 0%, #319795 100%); padding: 35px; border-radius: 16px; color: white; margin-bottom: 35px; box-shadow: 0 10px 25px rgba(49, 151, 149, 0.15); }
+        .welcome-banner h1 { font-size: 2rem; font-weight: 700; margin-bottom: 6px; letter-spacing: -0.5px; }
+        .welcome-banner p { color: #e6fffa; font-size: 1.05rem; }
+        
+        /* EXECUTIVE ANALYTICAL CARDS */
+        .metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 25px; margin-bottom: 40px; }
+        .p-card { background: white; padding: 25px; border-radius: 14px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px rgba(0,0,0,0.01); display: flex; flex-direction: column; gap: 6px; position: relative; }
+        .p-card::after { content: ''; position: absolute; bottom: 0; left: 0; width: 100%; height: 4px; background: #319795; border-radius: 0 0 14px 14px; }
+        .p-card span { font-size: 0.85rem; font-weight: 700; color: #a0aec0; text-transform: uppercase; letter-spacing: 0.5px; }
+        .p-card h2 { font-size: 2.2rem; color: #2d3748; font-weight: 700; line-height: 1.1; }
+        .p-card p { font-size: 0.85rem; color: #48bb78; font-weight: 600; display: flex; align-items: center; gap: 4px; }
+
+        /* DATA MANAGEMENT PANEL */
+        .panel { background: white; padding: 30px; border-radius: 16px; border: 1px solid #e2e8f0; box-shadow: 0 4px 20px rgba(0,0,0,0.01); }
+        .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; flex-wrap: wrap; gap: 15px; }
+        .panel-header h3 { font-size: 1.3rem; color: #2d3748; font-weight: 700; }
+        .panel-actions button { padding: 10px 20px; background: #319795; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 0.9rem; transition: background 0.2s; }
+        .panel-actions button:hover { background: #236c6b; }
+
+        /* DATA STORAGE TABLE GRID */
+        .data-table-wrapper { width: 100%; overflow-x: auto; }
+        .data-table { width: 100%; border-collapse: collapse; text-align: left; }
+        .data-table th, .data-table td { padding: 16px 20px; border-bottom: 1px solid #edf2f7; font-size: 0.95rem; }
+        .data-table th { background: #f7fafc; color: #4a5568; font-weight: 700; text-transform: uppercase; font-size: 0.8rem; letter-spacing: 0.5px; }
+        .data-table tr:hover { background: #f8fafc; }
+        
+        /* DATA CONTROLS ELEMENTS */
+        .status-badge { display: inline-block; padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 700; }
+        .status-badge.high { background: #d1fae5; color: #065f46; }
+        .status-badge.low { background: #fef3c7; color: #92400e; }
+        .action-edit-btn { padding: 8px 16px; background: #edf2f7; color: #4a5568; border: none; border-radius: 6px; font-weight: 600; font-size: 0.85rem; cursor: pointer; transition: all 0.2s; }
+        .action-edit-btn:hover { background: #319795; color: white; }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar">
+        <div class="logo-container">
+            <a href="index.html" class="brand-text"><span class="brand-cursive-m">M</span>editrac</a>
+        </div>
+        <div class="nav-links">
+            <div style="text-align: right; margin-right: 5px;">
+                <p style="font-weight: 700; color: #2d3748; font-size: 0.9rem; line-height: 1;">Partner Terminal</p>
+                <small style="color: #319795; font-weight: 600; font-size: 0.75rem;">● Store Profile Live</small>
+            </div>
+            <a href="index.html" class="nav-btn" style="background-color: #e53e3e; box-shadow: none;">Log Out</a>
+        </div>
+    </nav>
+
+    <div class="dashboard-container">
+        <aside class="sidebar">
+            <a href="#" class="sidebar-link active"> Manage Stock</a>
+            <a href="#" class="sidebar-link"> Reservations <span style="background: #e53e3e; color: white; font-size: 0.75rem; padding: 2px 6px; border-radius: 10px; margin-left: auto;">3</span></a>
+            <a href="#" class="sidebar-link"> Pharmacy Profile</a>
+            <a href="#" class="sidebar-link"> Analytics Reports</a>
+            <hr style="border: 0; border-top: 1px solid #edf2f7; margin: 15px 0;">
+            <a href="#" class="sidebar-link"> Settings</a>
+        </aside>
+
+        <main class="main-content">
+            <div class="welcome-banner">
+                <h1 id="pharmacy-greeting">Welcome back, Partner Pharmacy!</h1>
+                <p>Keep your shelf metrics precise to streamline walk-in patient processing tracks seamlessly.</p>
+            </div>
+
+            <div class="metrics-grid">
+                <div class="p-card">
+                    <span>Profile Traffic Today</span>
+                    <h2>142</h2>
+                    <p> +18% vs yesterday</p>
+                </div>
+                <div class="p-card">
+                    <span>Search Leads Routed</span>
+                    <h2>38 Patients</h2>
+                    <p> Active navigation tracks</p>
+                </div>
+                <div class="p-card">
+                    <span>Catalog Coverage</span>
+                    <h2>94.2%</h2>
+                    <p style="color: #319795;">1,204 active formulations</p>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-header">
+                    <h3>Pharmacy Shelf Inventory List</h3>
+                    <div class="panel-actions">
+                        <button>+ Add New Medication</button>
+                    </div>
+                </div>
+
+                <div class="data-table-wrapper">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Medication Specifications</th>
+                                <th>Classification Group</th>
+                                <th>Shelf Quantity Status</th>
+                                <th>Retail Unit Price</th>
+                                <th>System Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Amoxicillin 500mg</strong><br><small style="color:#a0aec0;">Capsules • 10x10 pack</small></td>
+                                <td>Antibiotic Antibacterial</td>
+                                <td><span class="status-badge high">In Stock (45 Boxes)</span></td>
+                                <td style="font-weight: 600; color:#2d3748;">KES 650</td>
+                                <td><button class="action-edit-btn">Update Stock</button></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Insulin Lantus SoloStar</strong><br><small style="color:#a0aec0;">100 U/mL Injection Pen</small></td>
+                                <td>Hormonal / Diabetes Care</td>
+                                <td><span class="status-badge low">Low Stock (3 Vials)</span></td>
+                                <td style="font-weight: 600; color:#2d3748;">KES 3,200</td>
+                                <td><button class="action-edit-btn">Update Stock</button></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Augmentin 625mg</strong><br><small style="color:#a0aec0;">Coated Tablets • 14s pack</small></td>
+                                <td>Premium Antibiotic</td>
+                                <td><span class="status-badge high">In Stock (18 Boxes)</span></td>
+                                <td style="font-weight: 600; color:#2d3748;">KES 1,400</td>
+                                <td><button class="action-edit-btn">Update Stock</button></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const params = new URLSearchParams(window.location.search);
+        const name = params.get('name');
+        if (name) {
+            document.getElementById('pharmacy-greeting').innerText = `Welcome back, ${name}!`;
+        }
+    </script>
+</body>
+</html>
