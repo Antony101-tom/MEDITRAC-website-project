@@ -43,26 +43,36 @@ router.post('/', async (req, res) => {
 
 // ==========================================
 // 2. ROUTE: GET /api/medications/search
-// DESC:  Search drug by name to find stock/pharmacy locations
+// DESC:  Search drug by name or generic name to find stock/pharmacy locations
 // ==========================================
 router.get('/search', async (req, res) => {
     // Get search query from URL parameters (e.g., /api/medications/search?name=Amoxicillin)
     const drugName = req.query.name;
+
+    // Optional: allow explicitly requesting out-of-stock results too,
+    // e.g. /api/medications/search?name=Amoxicillin&includeOutOfStock=true
+    const includeOutOfStock = req.query.includeOutOfStock === 'true';
 
     if (!drugName) {
         return res.status(400).json({ message: 'Please provide a drug name to search for.' });
     }
 
     try {
-        // Querying your friend's exact view with case-insensitive wildcard match (ILIKE)
-        const query = `
+        // Matches on drug_name OR generic_name, since patients may search
+        // by brand name while pharmacies stock under the generic name (or vice versa).
+        // By default, excludes out_of_stock results so users don't see phantom matches.
+        let query = `
             SELECT * FROM drug_availability
-            WHERE drug_name ILIKE $1
-            ORDER BY quantity_available DESC;
+            WHERE (drug_name ILIKE $1 OR generic_name ILIKE $1)
         `;
-        
-        // % wildcards let users search partial names (e.g., "Pan" finds "Paracetamol")
+
         const values = [`%${drugName}%`];
+
+        if (!includeOutOfStock) {
+            query += ` AND status != 'out_of_stock'`;
+        }
+
+        query += ` ORDER BY quantity_available DESC;`;
 
         const result = await pool.query(query, values);
 
