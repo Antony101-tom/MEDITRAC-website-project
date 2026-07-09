@@ -19,6 +19,7 @@
             <a href="index.html" class="nav-item">Home</a>
             <a href="#how-it-works" class="nav-item">How It Works</a>
             <a href="#process" class="nav-item">Our Process</a>
+            <a href="login.html" class="nav-item">Login</a>
             <a href="register.html" class="nav-btn">Register</a>
         </div>
     </nav>
@@ -30,10 +31,16 @@
         </div>
         <div class="search-container">
             <search class="search-bar">
-                <input type="text" placeholder="Search products......">
+                <input type="text" id="drug-search-input" placeholder="Search products......">
+                <button type="button" id="drug-search-btn">Search</button>
             </search>
         </div>
     </header>
+
+    <section id="search-results-section" style="max-width: 900px; margin: 30px auto; padding: 0 5%; display: none;">
+        <h3 style="margin-bottom: 15px;">Search Results</h3>
+        <div id="search-results-list" style="display: flex; flex-direction: column; gap: 15px;"></div>
+    </section>
 
     <main>
         <section class="benefits-section">
@@ -179,6 +186,102 @@
             <small>&copy; 2026 Meditrac. All Rights Reserved.</small>
         </div>
     </footer>
-    
+
+    <script>
+    const API_BASE_URL = 'http://localhost:5000';
+
+    const searchInput = document.getElementById('drug-search-input');
+    const searchBtn = document.getElementById('drug-search-btn');
+    const resultsSection = document.getElementById('search-results-section');
+    const resultsList = document.getElementById('search-results-list');
+
+    let userLat = null;
+    let userLng = null;
+
+    // Ask for location once, up front, so search doesn't have to wait on it every time
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                userLat = position.coords.latitude;
+                userLng = position.coords.longitude;
+            },
+            (err) => {
+                console.warn('Location not available, results will not be distance-sorted:', err.message);
+            }
+        );
+    }
+
+    // Haversine formula: calculates distance in km between two lat/long points
+    function getDistanceKm(lat1, lon1, lat2, lon2) {
+        const R = 6371; // Earth's radius in km
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLon = (lon2 - lon1) * Math.PI / 180;
+        const a =
+            Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return R * c;
+    }
+
+    async function runSearch() {
+        const drugName = searchInput.value.trim();
+        if (!drugName) return;
+
+        resultsSection.style.display = 'block';
+        resultsList.innerHTML = '<p>Searching...</p>';
+
+        try {
+            const response = await fetch(
+                `${API_BASE_URL}/api/medications/search?name=${encodeURIComponent(drugName)}`
+            );
+            const result = await response.json();
+
+            if (!response.ok) {
+                resultsList.innerHTML = `<p>${result.message || 'No results found.'}</p>`;
+                return;
+            }
+
+            let items = result.data;
+
+            // If we have the user's location, calculate distance and sort by it
+            if (userLat !== null && userLng !== null) {
+                items = items.map(item => ({
+                    ...item,
+                    distanceKm: (item.latitude && item.longitude)
+                        ? getDistanceKm(userLat, userLng, item.latitude, item.longitude)
+                        : null
+                }));
+                items.sort((a, b) => {
+                    if (a.distanceKm === null) return 1;
+                    if (b.distanceKm === null) return -1;
+                    return a.distanceKm - b.distanceKm;
+                });
+            }
+
+            resultsList.innerHTML = items.map(item => `
+                <div style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px;">
+                    <h4 style="margin-bottom: 5px;">${item.drug_name} ${item.strength ? '(' + item.strength + ')' : ''}</h4>
+                    <p style="color:#4a5568; margin-bottom: 8px;">
+                        <strong>${item.pharmacy_name}</strong> — ${item.address}, ${item.city}
+                        ${item.distanceKm !== null && item.distanceKm !== undefined ? ` • ${item.distanceKm.toFixed(1)} km away` : ''}
+                    </p>
+                    <p style="font-size: 0.9rem; color:#718096;">
+                        Price: KES ${item.price} • Quantity: ${item.quantity_available} • Status: ${item.status}
+                    </p>
+                </div>
+            `).join('');
+
+        } catch (err) {
+            console.error('Search request failed:', err);
+            resultsList.innerHTML = '<p>Could not reach the server. Is the backend running on port 5000?</p>';
+        }
+    }
+
+    searchBtn.addEventListener('click', runSearch);
+    searchInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') runSearch();
+    });
+</script>
 </body>
 </html>

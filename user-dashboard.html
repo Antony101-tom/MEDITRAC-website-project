@@ -108,8 +108,8 @@
             <div class="search-hero-panel">
                 <h3>Track Medicine Availability On-Demand</h3>
                 <div class="input-wrapper">
-                    <input type="text" placeholder="Type drug name here (e.g., Insulin Lantus, Amoxicillin, Ventolin)...">
-                    <button class="search-cta">Locate Stock Now</button>
+                    <input type="text" id="drug-search-input"placeholder="Type drug name here (e.g., Insulin Lantus, Amoxicillin, Ventolin)...">
+                    <button class="search-cta" id="drug-search-btn">Locate Stock Now</button>
                 </div>
             </div>
 
@@ -118,18 +118,9 @@
                 <small style="color: #2b6cb0; font-size: 0.85rem; font-weight: 600; cursor: pointer;"></small>
             </div>
 
-            <div class="live-grid">
-                <div class="med-card" style="border-top: 4px solid #2b6cb0;">
-                    <div class="med-meta">
-                        <div class="med-title">
-                            <h4>Metformin 500mg</h4>
-                            <span>Diabetes Care • 60 Tablets</span>
-                        </div>
-                        
-                    </div>
-                    <p class="pharmacy-detail">Closest match found at <strong>Halisi Pharmacy</strong>. Pricing logged at KES 750 per pack.</p>
-                    <div class="location-tag"> Kilimani Branch (1.2 km away)</div>
-                </div>
+            <div class="live-grid" id="live-grid">
+                <p>Search for a medicine above to see live pharmacy results.</p>
+            </div>
 
                 <div class="med-card" style="border-top: 4px solid #dd6b20;">
                     <div class="med-meta">
@@ -147,11 +138,101 @@
     </div>
 
     <script>
-        const params = new URLSearchParams(window.location.search);
-        const name = params.get('name');
-        if (name) {
-            document.getElementById('user-greeting').innerText = `Welcome back, ${name}!`;
+    const params = new URLSearchParams(window.location.search);
+    const name = params.get('name');
+    if (name) {
+        document.getElementById('user-greeting').innerText = `Welcome back, ${name}!`;
+    }
+
+    const API_BASE_URL = 'http://localhost:5000';
+
+    const searchInput = document.getElementById('drug-search-input');
+    const searchBtn = document.getElementById('drug-search-btn');
+    const liveGrid = document.getElementById('live-grid');
+
+    let userLat = null;
+    let userLng = null;
+
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                userLat = position.coords.latitude;
+                userLng = position.coords.longitude;
+            },
+            (err) => {
+                console.warn('Location not available, results will not be distance-sorted:', err.message);
+            }
+        );
+    }
+
+    function getDistanceKm(lat1, lon1, lat2, lon2) {
+        const R = 6371;
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLon = (lon2 - lon1) * Math.PI / 180;
+        const a =
+            Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return R * c;
+    }
+
+    async function runSearch() {
+        const drugName = searchInput.value.trim();
+        if (!drugName) return;
+
+        liveGrid.innerHTML = '<p>Searching...</p>';
+
+        try {
+            const response = await fetch(
+                `${API_BASE_URL}/api/medications/search?name=${encodeURIComponent(drugName)}`
+            );
+            const result = await response.json();
+
+            if (!response.ok) {
+                liveGrid.innerHTML = `<p>${result.message || 'No results found.'}</p>`;
+                return;
+            }
+
+            let items = result.data;
+
+            if (userLat !== null && userLng !== null) {
+                items = items.map(item => ({
+                    ...item,
+                    distanceKm: (item.latitude && item.longitude)
+                        ? getDistanceKm(userLat, userLng, item.latitude, item.longitude)
+                        : null
+                }));
+                items.sort((a, b) => {
+                    if (a.distanceKm === null) return 1;
+                    if (b.distanceKm === null) return -1;
+                    return a.distanceKm - b.distanceKm;
+                });
+            }
+
+            liveGrid.innerHTML = items.map(item => `
+                <div class="med-card" style="border-top: 4px solid #2b6cb0;">
+                    <div class="med-meta">
+                        <div class="med-title">
+                            <h4>${item.drug_name} ${item.strength ? '(' + item.strength + ')' : ''}</h4>
+                            <span>${item.generic_name || ''}</span>
+                        </div>
+                    </div>
+                    <p class="pharmacy-detail">Found at <strong>${item.pharmacy_name}</strong>. KES ${item.price} — ${item.quantity_available} available (${item.status.replace('_',' ')}).</p>
+                    <div class="location-tag"> ${item.address}, ${item.city}${item.distanceKm !== null && item.distanceKm !== undefined ? ` (${item.distanceKm.toFixed(1)} km away)` : ''}</div>
+                </div>
+            `).join('');
+
+        } catch (err) {
+            console.error('Search request failed:', err);
+            liveGrid.innerHTML = '<p>Could not reach the server. Is the backend running on port 5000?</p>';
         }
-    </script>
+    }
+
+    searchBtn.addEventListener('click', runSearch);
+    searchInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') runSearch();
+    });
+</script>
 </body>
 </html>

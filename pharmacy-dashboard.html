@@ -61,7 +61,7 @@
                 <div class="panel-header">
                     <h3>Pharmacy Shelf Inventory List</h3>
                     <div class="panel-actions">
-                        <button>+ Add New Medication</button>
+                        <button onclick="addMedication()">+ Add New Medication</button>
                     </div>
                 </div>
 
@@ -76,28 +76,8 @@
                                 <th>System Actions</th>
                             </tr>
                         </thead>
-                        <tbody>
-                            <tr>
-                                <td><strong>Amoxicillin 500mg</strong><br><small style="color:#a0aec0;">Capsules • 10x10 pack</small></td>
-                                <td>Antibiotic Antibacterial</td>
-                                <td><span class="status-badge high">In Stock (45 Boxes)</span></td>
-                                <td style="font-weight: 600; color:#2d3748;">KES 650</td>
-                                <td><button class="action-edit-btn">Update Stock</button></td>
-                            </tr>
-                            <tr>
-                                <td><strong>Insulin Lantus SoloStar</strong><br><small style="color:#a0aec0;">100 U/mL Injection Pen</small></td>
-                                <td>Hormonal / Diabetes Care</td>
-                                <td><span class="status-badge low">Low Stock (3 Vials)</span></td>
-                                <td style="font-weight: 600; color:#2d3748;">KES 3,200</td>
-                                <td><button class="action-edit-btn">Update Stock</button></td>
-                            </tr>
-                            <tr>
-                                <td><strong>Augmentin 625mg</strong><br><small style="color:#a0aec0;">Coated Tablets • 14s pack</small></td>
-                                <td>Premium Antibiotic</td>
-                                <td><span class="status-badge high">In Stock (18 Boxes)</span></td>
-                                <td style="font-weight: 600; color:#2d3748;">KES 1,400</td>
-                                <td><button class="action-edit-btn">Update Stock</button></td>
-                            </tr>
+                        <tbody id="inventory-body">
+                            <tr><td colspan="5">Loading inventory...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -110,7 +90,135 @@
         const name = params.get('name');
         if (name) {
             document.getElementById('pharmacy-greeting').innerText = `Welcome back, ${name}!`;
+    }
+
+        const API_BASE_URL = 'http://localhost:5000';
+        const pharmacyId = localStorage.getItem('meditrac_id');
+        const inventoryBody = document.getElementById('inventory-body');
+
+        function statusLabel(status, qty) {
+            const readable = status.replace('_', ' ');
+            const cls = status === 'out_of_stock' ? 'low' : (status === 'low_stock' ? 'low' : 'high');
+            return `<span class="status-badge ${cls}">${readable} (${qty})</span>`;
         }
+
+        async function loadInventory() {
+            if (!pharmacyId) {
+                inventoryBody.innerHTML = '<tr><td colspan="5">Please log in as a pharmacy to view your inventory.</td></tr>';
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/medications/pharmacy/${pharmacyId}`);
+                const result = await response.json();
+
+                if (!response.ok || result.data.length === 0) {
+                    inventoryBody.innerHTML = '<tr><td colspan="5">No medications in your inventory yet.</td></tr>';
+                    return;
+                }
+
+                inventoryBody.innerHTML = result.data.map(item => `
+                    <tr>
+                        <td><strong>${item.drug_name}</strong><br><small style="color:#a0aec0;">${item.dosage_form || ''}</small></td>
+                        <td>${item.category || '—'}</td>
+                        <td>${statusLabel(item.status, item.quantity_available)}</td>
+                        <td style="font-weight: 600; color:#2d3748;">KES ${item.price}</td>
+                        <td><button class="action-edit-btn" onclick="updateStock(${item.inventory_id}, ${item.quantity_available}, ${item.price})">Update Stock</button></td>
+                    </tr>
+                `).join('');
+
+            } catch (err) {
+                console.error('Inventory load failed:', err);
+                inventoryBody.innerHTML = '<tr><td colspan="5">Could not reach the server. Is the backend running?</td></tr>';
+            }
+        }
+    
+
+        async function updateStock(inventoryId, currentQty, currentPrice) {
+            const newQty = prompt('Enter new quantity available:', currentQty);
+            if (newQty === null) return;
+
+            const newPrice = prompt('Enter new price (KES):', currentPrice);
+            if (newPrice === null) return;
+
+            let newStatus = 'in_stock';
+            const qtyNum = parseInt(newQty, 10);
+            if (qtyNum === 0) newStatus = 'out_of_stock';
+            else if (qtyNum <= 5) newStatus = 'low_stock';
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/medications/inventory/${inventoryId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        quantity_available: qtyNum,
+                        price: parseFloat(newPrice),
+                        status: newStatus
+                    })
+                });
+
+                if (!response.ok) {
+                    const result = await response.json();
+                    alert(result.message || 'Update failed.');
+                    return;
+                }
+                
+
+                loadInventory();
+
+            } catch (err) {
+                console.error('Update failed:', err);
+            alert('Could not reach the server.');
+            }
+        }
+
+        async function addMedication() {
+    const drugName = prompt('Drug name:');
+    if (!drugName) return;
+
+    const category = prompt('Category (e.g. antibiotic, analgesic):') || null;
+    const dosageForm = prompt('Dosage form (e.g. tablet, capsule, syrup):') || null;
+    const quantity = prompt('Quantity available:', '10');
+    if (quantity === null) return;
+
+    const price = prompt('Price (KES):', '100');
+    if (price === null) return;
+
+    const qtyNum = parseInt(quantity, 10);
+    let status = 'in_stock';
+    if (qtyNum === 0) status = 'out_of_stock';
+    else if (qtyNum <= 5) status = 'low_stock';
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/medications/pharmacy/${pharmacyId}/inventory`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                drug_name: drugName,
+                category,
+                dosage_form: dosageForm,
+                quantity_available: qtyNum,
+                price: parseFloat(price),
+                status
+            })
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+            alert(result.message || 'Could not add medication.');
+            return;
+        }
+
+        loadInventory();
+
+    } catch (err) {
+        console.error('Add medication failed:', err);
+        alert('Could not reach the server.');
+    }
+}
+
+        loadInventory();
     </script>
 </body>
 </html>

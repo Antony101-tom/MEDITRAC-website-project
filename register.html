@@ -23,60 +23,73 @@
     <div class="auth-container">
         <h2>Join Meditrac</h2>
         <p class="auth-subtitle">Select your account type to continue registration</p>
-        
+
         <div class="toggle-buttons">
             <button class="toggle-btn active" id="show-user-btn" onclick="switchForm('user')">Regular User</button>
             <button class="toggle-btn" id="show-pharmacy-btn" onclick="switchForm('pharmacy')">Pharmacy Portal</button>
         </div>
 
-        <form id="user-form" onsubmit="redirectToDashboard(event, 'user')">
+        <p id="form-message" style="display:none; padding: 10px; border-radius: 6px; margin-top: 10px; font-weight: 600;"></p>
+
+        <form id="user-form" onsubmit="handleRegister(event, 'user')">
             <div class="form-group">
                 <label>Full Name</label>
                 <input type="text" id="user-name" required placeholder="e.g., John Doe">
             </div>
             <div class="form-group">
                 <label>Email Address</label>
-                <input type="email" required placeholder="e.g., john@example.com">
+                <input type="email" id="user-email" required placeholder="e.g., john@example.com">
             </div>
             <div class="form-group">
                 <label>Contact Number</label>
-                <input type="tel" required placeholder="e.g., 0712345678">
+                <input type="tel" id="user-phone" required placeholder="e.g., 0712345678">
             </div>
             <div class="form-group">
                 <label>Location / Estate</label>
-                <input type="text" required placeholder="e.g., Kilimani, Nairobi">
+                <input type="text" id="user-location" required placeholder="e.g., Kilimani, Nairobi">
             </div>
-            <button type="submit" class="submit-btn">Register & Log In</button>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="user-password" required minlength="6" placeholder="At least 6 characters">
+            </div>
+            <button type="submit" class="submit-btn" id="user-submit-btn">Register & Log In</button>
         </form>
 
-        <form id="pharmacy-form" class="hidden-form" onsubmit="redirectToDashboard(event, 'pharmacy')">
+        <form id="pharmacy-form" class="hidden-form" onsubmit="handleRegister(event, 'pharmacy')">
             <div class="form-group">
                 <label>Pharmacy / Chemist Name</label>
                 <input type="text" id="pharm-name" required placeholder="e.g., Halisi Pharmaceuticals">
             </div>
             <div class="form-group">
                 <label>Official Email</label>
-                <input type="email" required placeholder="e.g., info@halisipharmacy.co.ke">
+                <input type="email" id="pharm-email" required placeholder="e.g., info@halisipharmacy.co.ke">
             </div>
             <div class="form-group">
                 <label>Business Contact Number</label>
-                <input type="tel" required placeholder="e.g., 0722000000">
+                <input type="tel" id="pharm-phone" required placeholder="e.g., 0722000000">
             </div>
             <div class="form-group">
                 <label>Physical Location</label>
-                <input type="text" required placeholder="e.g., Tom Mboya Street, Nairobi">
+                <input type="text" id="pharm-address" required placeholder="e.g., Tom Mboya Street, Nairobi">
             </div>
-            <button type="submit" class="submit-btn">Register Pharmacy Portal</button>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="pharm-password" required minlength="6" placeholder="At least 6 characters">
+            </div>
+            <button type="submit" class="submit-btn" id="pharmacy-submit-btn">Register Pharmacy Portal</button>
         </form>
     </div>
 
     <script>
+        const API_BASE_URL = 'http://localhost:5000';
+
         function switchForm(type) {
             const userForm = document.getElementById('user-form');
             const pharmacyForm = document.getElementById('pharmacy-form');
             const userBtn = document.getElementById('show-user-btn');
             const pharmacyBtn = document.getElementById('show-pharmacy-btn');
-            
+            hideMessage();
+
             if (type === 'user') {
                 userForm.classList.remove('hidden-form');
                 pharmacyForm.classList.add('hidden-form');
@@ -90,17 +103,84 @@
             }
         }
 
-        function redirectToDashboard(event, type) {
+        function showMessage(text, isError) {
+            const msg = document.getElementById('form-message');
+            msg.textContent = text;
+            msg.style.display = 'block';
+            msg.style.backgroundColor = isError ? '#fee2e2' : '#d1fae5';
+            msg.style.color = isError ? '#991b1b' : '#065f46';
+        }
+
+        function hideMessage() {
+            document.getElementById('form-message').style.display = 'none';
+        }
+
+        async function handleRegister(event, type) {
             event.preventDefault();
-            
+            hideMessage();
+
+            const submitBtn = document.getElementById(type === 'user' ? 'user-submit-btn' : 'pharmacy-submit-btn');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Registering...';
+
+            let body;
             if (type === 'user') {
-                const name = encodeURIComponent(document.getElementById('user-name').value);
-                // Redirect straight to user panel with name in parameters
-                window.location.href = `user-dashboard.html?name=${name}`;
+                body = {
+                    accountType: 'user',
+                    full_name: document.getElementById('user-name').value,
+                    email: document.getElementById('user-email').value,
+                    phone: document.getElementById('user-phone').value,
+                    location_text: document.getElementById('user-location').value,
+                    password: document.getElementById('user-password').value
+                };
             } else {
-                const name = encodeURIComponent(document.getElementById('pharm-name').value);
-                // Redirect straight to pharmacy panel with business name in parameters
-                window.location.href = `pharmacy-dashboard.html?name=${name}`;
+                body = {
+                    accountType: 'pharmacy',
+                    name: document.getElementById('pharm-name').value,
+                    email: document.getElementById('pharm-email').value,
+                    phone: document.getElementById('pharm-phone').value,
+                    address: document.getElementById('pharm-address').value,
+                    password: document.getElementById('pharm-password').value
+                };
+            }
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    showMessage(result.message || 'Registration failed. Please try again.', true);
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = type === 'user' ? 'Register & Log In' : 'Register Pharmacy Portal';
+                    return;
+                }
+
+                showMessage(result.message || 'Registered successfully!', false);
+
+                const name = encodeURIComponent(result.data.full_name || result.data.name);
+                const id = result.data.user_id || result.data.pharmacy_id;
+
+                localStorage.setItem('meditrac_accountType', type);
+                localStorage.setItem('meditrac_id', id);
+
+                setTimeout(() => {
+                    if (type === 'user') {
+                        window.location.href = `user-dashboard.html?name=${name}`;
+                    } else {
+                        window.location.href = `pharmacy-dashboard.html?name=${name}`;
+                    }
+                }, 800);
+
+            } catch (err) {
+                console.error('Registration request failed:', err);
+                showMessage('Could not reach the server. Is the backend running on port 5000?', true);
+                submitBtn.disabled = false;
+                submitBtn.textContent = type === 'user' ? 'Register & Log In' : 'Register Pharmacy Portal';
             }
         }
     </script>
