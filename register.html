@@ -4,13 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Register - Meditrac</title>
+    <link rel="icon" type="image/png" href="logos/favicon.png">
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="register.css">
 </head>
 <body style="background-color: #f8f9fa;">
 
     <nav class="navbar">
         <div class="logo-container">
-            <a href="index.html" class="brand-text"><span class="brand-cursive-m">M</span>editrac</a>
+            <a href="index.html"><img class="logo" src="/logos/logo.png"></a>
         </div>
         <div class="nav-links">
             <a href="index.html" class="nav-item">Home</a>
@@ -23,13 +25,12 @@
     <div class="auth-container">
         <h2>Join Meditrac</h2>
         <p class="auth-subtitle">Select your account type to continue registration</p>
-
+        
         <div class="toggle-buttons">
             <button class="toggle-btn active" id="show-user-btn" onclick="switchForm('user')">Regular User</button>
             <button class="toggle-btn" id="show-pharmacy-btn" onclick="switchForm('pharmacy')">Pharmacy Portal</button>
-        </div>
-
-        <p id="form-message" style="display:none; padding: 10px; border-radius: 6px; margin-top: 10px; font-weight: 600;"></p>
+          </div>
+          <p id="form-message" style="display:none; padding: 10px; border-radius: 6px; margin-top: 10px; font-weight: 600;"></p>
 
         <form id="user-form" onsubmit="handleRegister(event, 'user')">
             <div class="form-group">
@@ -78,7 +79,9 @@
             </div>
             <button type="submit" class="submit-btn" id="pharmacy-submit-btn">Register Pharmacy Portal</button>
         </form>
+      </div>
     </div>
+   
 
     <script>
         const API_BASE_URL = 'http://localhost:5000';
