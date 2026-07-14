@@ -1,3 +1,43 @@
-body{
-    background: #107ACA ;
+.type-toggle { 
+    margin-top: -6px; 
 }
+.message-box.error {
+    background: #fed7d7;
+    color: #822727;
+    border: 1px solid #feb2b2;
+}
+.switch-hint {
+    text-align: center;
+    font-size: 0.85rem;
+    color: #718096;
+    margin-top: 14px;
+}
+.switch-hint a {
+    color: #107ACA;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: underline;
+}
+
+        /* style.css hardcodes height:600px on these two, sized for the old
+           single-toggle form. The extra Sign Up/Log In toggle row, message
+           box, and switch-hint line push content taller than that, so it
+           was spilling out past the blue box. Let both grow with content
+           instead, and keep the logo vertically centered regardless of the
+           final height. */
+.main-auth-container {
+    height: auto;
+    min-height: 600px;
+    padding-bottom: 30px;
+}
+.auth-container {
+    height: auto;
+    min-height: 600px;
+    padding-top: 30px;
+    padding-bottom: 30px;
+}
+.register-logo-container {
+    top: 50%;
+    transform: translateY(-50%);
+}
+    

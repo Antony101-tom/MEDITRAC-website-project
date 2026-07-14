@@ -6,19 +6,99 @@
     <title>Patient Portal - Meditrac</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="user-dashboard.css">
+    <style>
+        .empty-state {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 40px 20px;
+            color: #718096;
+            font-size: 0.9rem;
+        }
+        .empty-state strong {
+            display: block;
+            color: #4a5568;
+            font-size: 1rem;
+            margin-bottom: 6px;
+        }
+        .clear-search-link {
+            color: #2b6cb0;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .pharmacy-options {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .pharmacy-option {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 12px;
+            background: #f7fafc;
+            border: 1px solid #edf2f7;
+            border-radius: 8px;
+            flex-wrap: wrap;
+        }
+        .po-info strong { display: block; color: #2d3748; font-size: 0.9rem; }
+        .po-info .po-sub { display: block; color: #a0aec0; font-size: 0.78rem; margin-top: 2px; }
+        .po-stock { font-size: 0.8rem; font-weight: 600; color: #2d3748; white-space: nowrap; }
+        .po-stock.low { color: #dd6b20; }
+        .track-btn {
+            background: #2b6cb0;
+            color: #fff;
+            border: none;
+            padding: 8px 14px;
+            border-radius: 6px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .track-btn:hover { background: #235a94; }
+        .track-btn.tracked {
+            background: #c6f6d5;
+            color: #22543d;
+            cursor: default;
+        }
+        .untrack-btn {
+            background: #fed7d7;
+            color: #822727;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .multi-pharmacy-note {
+            font-size: 0.75rem;
+            color: #a0aec0;
+            margin-top: 2px;
+        }
+        .toast {
+            position: fixed; bottom: 24px; right: 24px; background: #2d3748; color: #fff;
+            padding: 12px 18px; border-radius: 8px; font-size: 0.85rem; z-index: 1100;
+            opacity: 0; transform: translateY(10px); transition: all 0.25s ease; pointer-events: none;
+        }
+        .toast.show { opacity: 1; transform: translateY(0); }
+    </style>
 </head>
 <body> 
 
     <nav class="navbar">
         <div class="logo-container">
-            <a href="index.html" class="brand-text"><span class="brand-cursive-m">M</span>editrac</a>
+            <a href="index.html"><img class="logo" src="/logos/logo.png"></a>
         </div>
         <div class="nav-links">
             <div style="text-align: right; margin-right: 5px;">
                 <p style="font-weight: 700; color: #2d3748; font-size: 0.9rem; line-height: 1;">Patient Dashboard</p>
                 <small style="color: #48bb78; font-weight: 600; font-size: 0.75rem;">● Account Verified</small>
             </div>
-            <a href="index.html" class="nav-btn" style="background-color: #e53e3e; box-shadow: none;">Log Out</a>
+            <a href="index.html" class="nav-btn" style="background-color: #e53e3e; box-shadow: none;" onclick="localStorage.removeItem('meditrac_session');">Log Out</a>
         </div>
     </nav>
 
@@ -37,150 +117,282 @@
 
             <div class="metrics-grid">
                 <div class="u-card">
-                    <span>Active Inquiries</span>
-                    <h3>2</h3>
-                    <p> Updated just now</p>
+                    <span>Active Trackers</span>
+                    <h3 id="metric-tracked">0</h3>
+                    <p id="metric-tracked-sub">No medicine tracked yet</p>
                 </div>
                 <div class="u-card">
                     <span>Saved Chemists</span>
-                    <h3>5</h3>
-                    <p style="color: #2b6cb0;">Nairobi County Network</p>
+                    <h3 id="metric-chemists">0</h3>
+                    <p style="color: #2b6cb0;" id="metric-chemists-sub">From your tracked medicine</p>
                 </div>
                 <div class="u-card">
-                    <span>Time Saved This Month</span>
-                    <h3>4.5 hrs</h3>
-                    <p> 120% efficiency gain</p>
+                    <span>Partner Network</span>
+                    <h3 id="metric-network">0</h3>
+                    <p>Pharmacies live on Meditrac</p>
                 </div>
             </div>
 
             <div class="search-hero-panel">
                 <h3>Track Medicine Availability On-Demand</h3>
                 <div class="input-wrapper">
-                    <input type="text" id="drug-search-input"placeholder="Type drug name here (e.g., Insulin Lantus, Amoxicillin, Ventolin)...">
-                    <button class="search-cta" id="drug-search-btn">Locate Stock Now</button>
+                    <input type="text" id="search-input" placeholder="Type drug name here (e.g., Insulin Lantus, Amoxicillin, Ventolin)...">
+                    <button class="search-cta" id="search-btn">Locate Stock Now</button>
                 </div>
             </div>
 
             <div class="feed-heading">
-                <h3>Your Active Medicine Trackers</h3>
-                <small style="color: #2b6cb0; font-size: 0.85rem; font-weight: 600; cursor: pointer;"></small>
+                <h3 id="results-heading">Your Active Medicine Trackers</h3>
+                <small class="clear-search-link" id="clear-search" style="display:none;">Clear search</small>
             </div>
 
-            <div class="live-grid" id="live-grid">
-                <p>Search for a medicine above to see live pharmacy results.</p>
-            </div>
-
-                <div class="med-card" style="border-top: 4px solid #dd6b20;">
-                    <div class="med-meta">
-                        <div class="med-title">
-                            <h4>Ventolin Inhaler</h4>
-                            <span>Asthma Care • 100mcg</span>
-                        </div>
-                        
-                    </div>
-                    <p class="pharmacy-detail">Only 2 items remaining at <strong>Glow Chemist</strong>. Call or visit promptly to reserve.</p>
-                    <div class="location-tag"> Ngong Road Branch (3.5 km away)</div>
-                </div>
+            <div class="live-grid" id="results-grid">
+                <!-- Populated by renderDefaultTrackers() / renderSearchResults() -->
             </div>
         </main>
     </div>
 
+    <div class="toast" id="toast"></div>
+
     <script>
-    const params = new URLSearchParams(window.location.search);
-    const name = params.get('name');
-    if (name) {
-        document.getElementById('user-greeting').innerText = `Welcome back, ${name}!`;
-    }
+        const STORAGE_KEY = 'meditrac_medications';
+        const LOW_STOCK_THRESHOLD = 5;
 
-    const API_BASE_URL = 'http://localhost:5000';
+        const params = new URLSearchParams(window.location.search);
+        let session = null;
+        try { session = JSON.parse(localStorage.getItem('meditrac_session') || 'null'); } catch (e) { /* ignore */ }
 
-    const searchInput = document.getElementById('drug-search-input');
-    const searchBtn = document.getElementById('drug-search-btn');
-    const liveGrid = document.getElementById('live-grid');
+        // Prefer the ?name= param (fresh login/signup redirect), then fall
+        // back to the saved session from register.html.
+        const name = params.get('name') || (session && session.type === 'user' ? session.name : null);
+        if (name) {
+            document.getElementById('user-greeting').innerText = `Welcome back, ${name}!`;
+        }
 
-    let userLat = null;
-    let userLng = null;
+        // Tracked medicine is scoped per logged-in patient. Anonymous
+        // visitors (no session) share a "guest" tracker list.
+        const TRACKED_KEY = 'meditrac_tracked_' + (session && session.type === 'user' && session.email ? session.email : 'guest');
 
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-            (position) => {
-                userLat = position.coords.latitude;
-                userLng = position.coords.longitude;
-            },
-            (err) => {
-                console.warn('Location not available, results will not be distance-sorted:', err.message);
+        function loadMedications() {
+            try {
+                const raw = localStorage.getItem(STORAGE_KEY);
+                return raw ? JSON.parse(raw) : [];
+            } catch (e) {
+                console.warn('Could not read medication database.', e);
+                return [];
             }
-        );
-    }
+        }
 
-    function getDistanceKm(lat1, lon1, lat2, lon2) {
-        const R = 6371;
-        const dLat = (lat2 - lat1) * Math.PI / 180;
-        const dLon = (lon2 - lon1) * Math.PI / 180;
-        const a =
-            Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-            Math.sin(dLon / 2) * Math.sin(dLon / 2);
-        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-        return R * c;
-    }
+        function loadTrackedIds() {
+            try {
+                const raw = localStorage.getItem(TRACKED_KEY);
+                return raw ? JSON.parse(raw) : [];
+            } catch (e) {
+                return [];
+            }
+        }
 
-    async function runSearch() {
-        const drugName = searchInput.value.trim();
-        if (!drugName) return;
+        function saveTrackedIds(ids) {
+            localStorage.setItem(TRACKED_KEY, JSON.stringify(ids));
+        }
 
-        liveGrid.innerHTML = '<p>Searching...</p>';
+        function isTracked(id) {
+            return loadTrackedIds().includes(id);
+        }
 
-        try {
-            const response = await fetch(
-                `${API_BASE_URL}/api/medications/search?name=${encodeURIComponent(drugName)}`
-            );
-            const result = await response.json();
+        function trackMedication(id) {
+            const ids = loadTrackedIds();
+            if (!ids.includes(id)) {
+                ids.push(id);
+                saveTrackedIds(ids);
+            }
+            const meds = loadMedications();
+            const med = meds.find(m => m.id === id);
+            showToast(med ? `${med.name} added to your trackers.` : 'Added to your trackers.');
+            // Refresh whichever view is currently open so button states update.
+            const query = document.getElementById('search-input').value;
+            if (query.trim() === '') {
+                renderDefaultTrackers();
+            } else {
+                renderSearchResults(query);
+            }
+        }
 
-            if (!response.ok) {
-                liveGrid.innerHTML = `<p>${result.message || 'No results found.'}</p>`;
+        function untrackMedication(id) {
+            const ids = loadTrackedIds().filter(x => x !== id);
+            saveTrackedIds(ids);
+            renderDefaultTrackers();
+        }
+
+        function escapeHtml(str) {
+            return String(str).replace(/[&<>"']/g, s => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[s]));
+        }
+
+        function formatBranch(branch) {
+            const b = (branch || '').trim();
+            return b ? escapeHtml(b) : 'Branch not specified by pharmacy';
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.innerText = msg;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 2200);
+        }
+
+        function updateMetrics() {
+            const meds = loadMedications();
+            const trackedIds = loadTrackedIds();
+            const trackedMeds = trackedIds.map(id => meds.find(m => m.id === id)).filter(Boolean);
+            const uniquePharmacies = new Set(trackedMeds.map(m => m.pharmacy));
+            const networkPharmacies = new Set(meds.map(m => m.pharmacy));
+
+            document.getElementById('metric-tracked').innerText = trackedMeds.length;
+            document.getElementById('metric-tracked-sub').innerText = trackedMeds.length === 0 ? 'No medicine tracked yet' : 'Updated just now';
+            document.getElementById('metric-chemists').innerText = uniquePharmacies.size;
+            document.getElementById('metric-network').innerText = networkPharmacies.size;
+        }
+
+        function renderDefaultTrackers() {
+            const grid = document.getElementById('results-grid');
+            document.getElementById('results-heading').innerText = 'Your Active Medicine Trackers';
+            document.getElementById('clear-search').style.display = 'none';
+            updateMetrics();
+
+            const meds = loadMedications();
+            const trackedIds = loadTrackedIds();
+            const trackedMeds = trackedIds.map(id => meds.find(m => m.id === id)).filter(Boolean);
+
+            if (trackedMeds.length === 0) {
+                grid.innerHTML = `
+                    <div class="empty-state">
+                        <strong>You aren't tracking any medicine yet</strong>
+                        Search for a drug above and hit "Track" on a pharmacy's listing to follow its availability here.
+                    </div>`;
                 return;
             }
 
-            let items = result.data;
-
-            if (userLat !== null && userLng !== null) {
-                items = items.map(item => ({
-                    ...item,
-                    distanceKm: (item.latitude && item.longitude)
-                        ? getDistanceKm(userLat, userLng, item.latitude, item.longitude)
-                        : null
-                }));
-                items.sort((a, b) => {
-                    if (a.distanceKm === null) return 1;
-                    if (b.distanceKm === null) return -1;
-                    return a.distanceKm - b.distanceKm;
-                });
-            }
-
-            liveGrid.innerHTML = items.map(item => `
-                <div class="med-card" style="border-top: 4px solid #2b6cb0;">
-                    <div class="med-meta">
-                        <div class="med-title">
-                            <h4>${item.drug_name} ${item.strength ? '(' + item.strength + ')' : ''}</h4>
-                            <span>${item.generic_name || ''}</span>
+            grid.innerHTML = trackedMeds.map(med => {
+                const isLow = Number(med.quantity) <= LOW_STOCK_THRESHOLD;
+                const accent = isLow ? '#dd6b20' : '#2b6cb0';
+                const note =
+                    med.quantity <= 0
+                        ? 'Out of stock'
+                        : isLow
+                            ? `Only ${med.quantity} ${escapeHtml(med.unit || 'units')} remaining`
+                            : `${med.quantity} ${escapeHtml(med.unit || 'units')} in stock`;
+                return `
+                    <div class="med-card" style="border-top: 4px solid ${accent};">
+                        <div class="med-meta">
+                            <div class="med-title">
+                                <h4>${escapeHtml(med.name)}</h4>
+                                <span>${escapeHtml(med.category || '')}${med.form ? ' • ' + escapeHtml(med.form) : ''}</span>
+                            </div>
+                        </div>
+                        <p class="pharmacy-detail">${note} at <strong>${escapeHtml(med.pharmacy)}</strong>. Pricing logged at KES ${Number(med.price).toLocaleString()} per ${escapeHtml((med.unit || 'unit').toLowerCase().replace(/s$/, ''))}.</p>
+                        <div class="location-tag"> ${formatBranch(med.branch)}</div>
+                        <div style="margin-top:10px; text-align:right;">
+                            <button class="untrack-btn" onclick="untrackMedication('${med.id}')">Stop Tracking</button>
                         </div>
                     </div>
-                    <p class="pharmacy-detail">Found at <strong>${item.pharmacy_name}</strong>. KES ${item.price} — ${item.quantity_available} available (${item.status.replace('_',' ')}).</p>
-                    <div class="location-tag"> ${item.address}, ${item.city}${item.distanceKm !== null && item.distanceKm !== undefined ? ` (${item.distanceKm.toFixed(1)} km away)` : ''}</div>
-                </div>
-            `).join('');
-
-        } catch (err) {
-            console.error('Search request failed:', err);
-            liveGrid.innerHTML = '<p>Could not reach the server. Is the backend running on port 5000?</p>';
+                `;
+            }).join('');
         }
-    }
 
-    searchBtn.addEventListener('click', runSearch);
-    searchInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') runSearch();
-    });
-</script>
+        function renderSearchResults(query) {
+            const grid = document.getElementById('results-grid');
+            const meds = loadMedications();
+            const q = query.trim().toLowerCase();
+
+            const matches = meds.filter(med =>
+                (med.name || '').toLowerCase().includes(q) ||
+                (med.category || '').toLowerCase().includes(q)
+            );
+
+            document.getElementById('results-heading').innerText = `Search Results for "${query}"`;
+            document.getElementById('clear-search').style.display = 'inline';
+
+            if (matches.length === 0) {
+                grid.innerHTML = `
+                    <div class="empty-state">
+                        <strong>"${escapeHtml(query)}" is unavailable</strong>
+                        None of our partner pharmacies currently list this medicine. Try a different name, or check back later.
+                    </div>`;
+                return;
+            }
+
+            // Group matches by medicine name so the same drug stocked by
+            // several pharmacies shows as one card with multiple options,
+            // sorted cheapest-first.
+            const groups = new Map();
+            matches.forEach(med => {
+                const key = (med.name || '').trim().toLowerCase();
+                if (!groups.has(key)) groups.set(key, []);
+                groups.get(key).push(med);
+            });
+
+            const trackedIds = loadTrackedIds();
+
+            grid.innerHTML = Array.from(groups.values()).map(group => {
+                group.sort((a, b) => Number(a.price) - Number(b.price));
+                const first = group[0];
+                const anyLow = group.some(m => Number(m.quantity) <= LOW_STOCK_THRESHOLD && Number(m.quantity) > 0);
+                const accent = anyLow ? '#dd6b20' : '#2b6cb0';
+
+                const optionsHtml = group.map(med => {
+                    const isLow = Number(med.quantity) <= LOW_STOCK_THRESHOLD;
+                    const tracked = trackedIds.includes(med.id);
+                    return `
+                        <div class="pharmacy-option">
+                            <div class="po-info">
+                                <strong>${escapeHtml(med.pharmacy)}</strong>
+                                <span class="po-sub">${formatBranch(med.branch)}</span>
+                            </div>
+                            <div class="po-stock ${isLow ? 'low' : ''}">
+                                ${med.quantity > 0
+                                    ? `${isLow ? 'Low Stock' : 'In Stock'} • ${med.quantity} ${escapeHtml(med.unit || 'units')} left`
+                                    : 'Out of Stock'}
+                                — KES ${Number(med.price).toLocaleString()}
+                            </div>
+                            <button class="track-btn ${tracked ? 'tracked' : ''}" ${tracked ? 'disabled' : ''} onclick="trackMedication('${med.id}')">${tracked ? '✓ Tracked' : 'Track'}</button>
+                        </div>
+                    `;
+                }).join('');
+
+                return `
+                    <div class="med-card" style="border-top: 4px solid ${accent};">
+                        <div class="med-meta">
+                            <div class="med-title">
+                                <h4>${escapeHtml(first.name)}</h4>
+                                <span>${escapeHtml(first.category || '')}${first.form ? ' • ' + escapeHtml(first.form) : ''}</span>
+                            </div>
+                        </div>
+                        ${group.length > 1 ? `<div class="multi-pharmacy-note">Available at ${group.length} partner pharmacies — sorted by lowest price</div>` : ''}
+                        <div class="pharmacy-options">${optionsHtml}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function runSearch() {
+            const query = document.getElementById('search-input').value;
+            if (query.trim() === '') {
+                renderDefaultTrackers();
+                return;
+            }
+            renderSearchResults(query);
+        }
+
+        document.getElementById('search-btn').addEventListener('click', runSearch);
+        document.getElementById('search-input').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') runSearch();
+        });
+        document.getElementById('clear-search').addEventListener('click', () => {
+            document.getElementById('search-input').value = '';
+            renderDefaultTrackers();
+        });
+
+        renderDefaultTrackers();
+    </script>
 </body>
 </html>

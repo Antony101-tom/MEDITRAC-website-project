@@ -172,10 +172,12 @@ body {
     margin-left: 160px;
     width: 100%;
     max-width: 650px;
+    display: none;
    
 }
 
 .search-bar input {
+    border: 5px solid black;
     width: 100%;
     padding: 18px 28px;
     font-size: 1.1rem;
@@ -184,6 +186,7 @@ body {
     box-shadow: 0 10px 30px rgba(0,0,0,0.25);
     outline: none;
     transition: border-color 0.2s ease;
+    display: none;
 }
 
 

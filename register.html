@@ -7,6 +7,53 @@
     <link rel="icon" type="image/png" href="logos/favicon.png">
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="register.css">
+    <style>
+        /* Extra states for the sign up / log in flow. Kept inline since
+           register.css wasn't available to edit directly — move these into
+           register.css whenever convenient. */
+        .type-toggle { margin-top: -6px; }
+        .message-box.error {
+            background: #fed7d7;
+            color: #822727;
+            border: 1px solid #feb2b2;
+        }
+        .switch-hint {
+            text-align: center;
+            font-size: 0.85rem;
+            color: #718096;
+            margin-top: 10px;
+        }
+        .switch-hint a {
+            color: #107ACA;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: underline;
+        }
+
+        /* Now that the Sign Up/Log In toggle row is gone, content fits back
+           within style.css's original fixed 600px box. Tightened a touch
+           more (toggle row + form-group spacing) so it sits comfortably
+           inside that height with room to spare, and overflow:hidden is a
+           safety net in case an error message ever wraps to two lines. */
+        .main-auth-container {
+            height: 600px;
+            overflow: hidden;
+        }
+        .auth-container {
+            height: 600px;
+            overflow: hidden;
+        }
+        #type-toggle {
+            margin-bottom: 16px;
+        }
+        .form-group {
+            margin-bottom: 8px;
+        }
+        .register-logo-container {
+            top: 50%;
+            transform: translateY(-50%);
+        }
+    </style>
 </head>
 <body style="background-color: #f8f9fa;">
 
@@ -22,170 +69,254 @@
         </div>
     </nav>
 
-    <div class="auth-container">
-        <h2>Join Meditrac</h2>
-        <p class="auth-subtitle">Select your account type to continue registration</p>
-        
-        <div class="toggle-buttons">
-            <button class="toggle-btn active" id="show-user-btn" onclick="switchForm('user')">Regular User</button>
-            <button class="toggle-btn" id="show-pharmacy-btn" onclick="switchForm('pharmacy')">Pharmacy Portal</button>
-          </div>
-          <p id="form-message" style="display:none; padding: 10px; border-radius: 6px; margin-top: 10px; font-weight: 600;"></p>
+    <div class="main-auth-container">
 
-        <form id="user-form" onsubmit="handleRegister(event, 'user')">
+        <div class="register-logo-container">
+            <img class="register-logo" src="/logos/process-illustration.png";>
+        </div>
+
+        <div class="auth-container">
+          <h2 id="auth-heading">Join Meditrac</h2>
+          <p class="auth-subtitle" id="auth-subtitle">Select your account type to continue registration</p>
+
+          <div class="toggle-buttons" id="type-toggle">
+            <button class="toggle-btn active" id="show-user-btn" onclick="switchAccountType('user')">Regular User</button>
+            <button class="toggle-btn" id="show-pharmacy-btn" onclick="switchAccountType('pharmacy')">Pharmacy Portal</button>
+          </div>
+
+          <p class="message-box" id="form-message"></p>
+
+          <!-- SIGN UP: Regular User -->
+          <form id="signup-user-form" onsubmit="handleSignup(event, 'user')">
             <div class="form-group">
                 <label>Full Name</label>
-                <input type="text" id="user-name" required placeholder="e.g., John Doe">
+                <input type="text" id="signup-user-name" required placeholder="e.g., John Doe">
             </div>
             <div class="form-group">
                 <label>Email Address</label>
-                <input type="email" id="user-email" required placeholder="e.g., john@example.com">
-            </div>
-            <div class="form-group">
-                <label>Contact Number</label>
-                <input type="tel" id="user-phone" required placeholder="e.g., 0712345678">
+                <input type="email" id="signup-user-email" required placeholder="e.g., john@example.com">
             </div>
             <div class="form-group">
                 <label>Location / Estate</label>
-                <input type="text" id="user-location" required placeholder="e.g., Kilimani, Nairobi">
+                <input type="text" required placeholder="e.g., Kilimani, Nairobi">
             </div>
             <div class="form-group">
                 <label>Password</label>
-                <input type="password" id="user-password" required minlength="6" placeholder="At least 6 characters">
+                <input type="password" id="signup-user-password" required placeholder="Create a password">
             </div>
-            <button type="submit" class="submit-btn" id="user-submit-btn">Register & Log In</button>
-        </form>
+            <button type="submit" class="submit-btn">Register & Log In</button>
+          </form>
 
-        <form id="pharmacy-form" class="hidden-form" onsubmit="handleRegister(event, 'pharmacy')">
+          <!-- SIGN UP: Pharmacy -->
+          <form id="signup-pharmacy-form" class="hidden-form" onsubmit="handleSignup(event, 'pharmacy')">
             <div class="form-group">
                 <label>Pharmacy / Chemist Name</label>
-                <input type="text" id="pharm-name" required placeholder="e.g., Halisi Pharmaceuticals">
+                <input type="text" id="signup-pharmacy-name" required placeholder="e.g., Halisi Pharmaceuticals">
             </div>
             <div class="form-group">
                 <label>Official Email</label>
-                <input type="email" id="pharm-email" required placeholder="e.g., info@halisipharmacy.co.ke">
-            </div>
-            <div class="form-group">
-                <label>Business Contact Number</label>
-                <input type="tel" id="pharm-phone" required placeholder="e.g., 0722000000">
+                <input type="email" id="signup-pharmacy-email" required placeholder="e.g., info@halisipharmacy.co.ke">
             </div>
             <div class="form-group">
                 <label>Physical Location</label>
-                <input type="text" id="pharm-address" required placeholder="e.g., Tom Mboya Street, Nairobi">
+                <input type="text" id="signup-pharmacy-location" required placeholder="e.g., Tom Mboya Street, Nairobi">
             </div>
             <div class="form-group">
                 <label>Password</label>
-                <input type="password" id="pharm-password" required minlength="6" placeholder="At least 6 characters">
+                <input type="password" id="signup-pharmacy-password" required placeholder="Create a password">
             </div>
-            <button type="submit" class="submit-btn" id="pharmacy-submit-btn">Register Pharmacy Portal</button>
-        </form>
+            <button type="submit" class="submit-btn">Register Pharmacy Portal</button>
+          </form>
+
+          <!-- LOG IN: Regular User -->
+          <form id="login-user-form" class="hidden-form" onsubmit="handleLogin(event, 'user')">
+            <div class="form-group">
+                <label>Email Address</label>
+                <input type="email" id="login-user-email" required placeholder="e.g., john@example.com">
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="login-user-password" required placeholder="Enter your password">
+            </div>
+            <button type="submit" class="submit-btn">Log In</button>
+          </form>
+
+          <!-- LOG IN: Pharmacy -->
+          <form id="login-pharmacy-form" class="hidden-form" onsubmit="handleLogin(event, 'pharmacy')">
+            <div class="form-group">
+                <label>Official Email</label>
+                <input type="email" id="login-pharmacy-email" required placeholder="e.g., info@halisipharmacy.co.ke">
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="login-pharmacy-password" required placeholder="Enter your password">
+            </div>
+            <button type="submit" class="submit-btn">Log In</button>
+          </form>
+
+          <p class="switch-hint" id="switch-hint"></p>
       </div>
     </div>
-   
+
 
     <script>
-        const API_BASE_URL = 'http://localhost:5000';
+        const ACCOUNTS_KEY = 'meditrac_accounts';
+        const SESSION_KEY = 'meditrac_session';
 
-        function switchForm(type) {
-            const userForm = document.getElementById('user-form');
-            const pharmacyForm = document.getElementById('pharmacy-form');
-            const userBtn = document.getElementById('show-user-btn');
-            const pharmacyBtn = document.getElementById('show-pharmacy-btn');
-            hideMessage();
+        let currentMode = 'signup';   // 'signup' | 'login'
+        let currentType = 'user';     // 'user' | 'pharmacy'
 
-            if (type === 'user') {
-                userForm.classList.remove('hidden-form');
-                pharmacyForm.classList.add('hidden-form');
-                userBtn.classList.add('active');
-                pharmacyBtn.classList.remove('active');
-            } else {
-                userForm.classList.add('hidden-form');
-                pharmacyForm.classList.remove('hidden-form');
-                userBtn.classList.remove('active');
-                pharmacyBtn.classList.add('active');
-            }
-        }
-
-        function showMessage(text, isError) {
-            const msg = document.getElementById('form-message');
-            msg.textContent = text;
-            msg.style.display = 'block';
-            msg.style.backgroundColor = isError ? '#fee2e2' : '#d1fae5';
-            msg.style.color = isError ? '#991b1b' : '#065f46';
-        }
-
-        function hideMessage() {
-            document.getElementById('form-message').style.display = 'none';
-        }
-
-        async function handleRegister(event, type) {
-            event.preventDefault();
-            hideMessage();
-
-            const submitBtn = document.getElementById(type === 'user' ? 'user-submit-btn' : 'pharmacy-submit-btn');
-            submitBtn.disabled = true;
-            submitBtn.textContent = 'Registering...';
-
-            let body;
-            if (type === 'user') {
-                body = {
-                    accountType: 'user',
-                    full_name: document.getElementById('user-name').value,
-                    email: document.getElementById('user-email').value,
-                    phone: document.getElementById('user-phone').value,
-                    location_text: document.getElementById('user-location').value,
-                    password: document.getElementById('user-password').value
-                };
-            } else {
-                body = {
-                    accountType: 'pharmacy',
-                    name: document.getElementById('pharm-name').value,
-                    email: document.getElementById('pharm-email').value,
-                    phone: document.getElementById('pharm-phone').value,
-                    address: document.getElementById('pharm-address').value,
-                    password: document.getElementById('pharm-password').value
-                };
-            }
-
+        // ---------- accounts "database" (localStorage) ----------
+        function loadAccounts() {
             try {
-                const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(body)
-                });
-
-                const result = await response.json();
-
-                if (!response.ok) {
-                    showMessage(result.message || 'Registration failed. Please try again.', true);
-                    submitBtn.disabled = false;
-                    submitBtn.textContent = type === 'user' ? 'Register & Log In' : 'Register Pharmacy Portal';
-                    return;
-                }
-
-                showMessage(result.message || 'Registered successfully!', false);
-
-                const name = encodeURIComponent(result.data.full_name || result.data.name);
-                const id = result.data.user_id || result.data.pharmacy_id;
-
-                localStorage.setItem('meditrac_accountType', type);
-                localStorage.setItem('meditrac_id', id);
-
-                setTimeout(() => {
-                    if (type === 'user') {
-                        window.location.href = `user-dashboard.html?name=${name}`;
-                    } else {
-                        window.location.href = `pharmacy-dashboard.html?name=${name}`;
-                    }
-                }, 800);
-
-            } catch (err) {
-                console.error('Registration request failed:', err);
-                showMessage('Could not reach the server. Is the backend running on port 5000?', true);
-                submitBtn.disabled = false;
-                submitBtn.textContent = type === 'user' ? 'Register & Log In' : 'Register Pharmacy Portal';
+                const raw = localStorage.getItem(ACCOUNTS_KEY);
+                return raw ? JSON.parse(raw) : [];
+            } catch (e) {
+                console.warn('Could not read accounts database.', e);
+                return [];
             }
         }
+
+        function saveAccounts(list) {
+            localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(list));
+        }
+
+        function findAccount(accounts, type, email) {
+            return accounts.find(a => a.type === type && a.email === email) || null;
+        }
+
+        function setSession(account) {
+            localStorage.setItem(SESSION_KEY, JSON.stringify({
+                type: account.type,
+                name: account.name,
+                email: account.email
+            }));
+        }
+
+        // ---------- UI state ----------
+        function switchMode(mode) {
+            currentMode = mode;
+
+            if (mode === 'signup') {
+                document.getElementById('auth-heading').innerText = 'Join Meditrac';
+                document.getElementById('auth-subtitle').innerText = 'Select your account type to continue registration';
+            } else {
+                document.getElementById('auth-heading').innerText = 'Welcome Back';
+                document.getElementById('auth-subtitle').innerText = 'Log in to pick up right where you left off';
+            }
+
+            clearMessage();
+            updateFormVisibility();
+        }
+
+        function switchAccountType(type) {
+            currentType = type;
+            document.getElementById('show-user-btn').classList.toggle('active', type === 'user');
+            document.getElementById('show-pharmacy-btn').classList.toggle('active', type === 'pharmacy');
+            clearMessage();
+            updateFormVisibility();
+        }
+
+        function updateFormVisibility() {
+            const forms = ['signup-user-form', 'signup-pharmacy-form', 'login-user-form', 'login-pharmacy-form'];
+            forms.forEach(id => document.getElementById(id).classList.add('hidden-form'));
+            document.getElementById(`${currentMode}-${currentType}-form`).classList.remove('hidden-form');
+
+            const hint = document.getElementById('switch-hint');
+            if (currentMode === 'signup') {
+                hint.innerHTML = `Already have an account? <a onclick="switchMode('login')">Log in instead</a>`;
+            } else {
+                hint.innerHTML = `Don't have an account yet? <a onclick="switchMode('signup')">Sign up instead</a>`;
+            }
+        }
+
+        function showMessage(text, type) {
+            const box = document.getElementById('form-message');
+            box.innerText = text;
+            box.className = `message-box ${type} show-message`;
+            box.style.display = 'block';
+        }
+
+        function clearMessage() {
+            const box = document.getElementById('form-message');
+            box.innerText = '';
+            box.style.display = 'none';
+        }
+
+        // ---------- handlers ----------
+        function handleSignup(event, type) {
+            event.preventDefault();
+            clearMessage();
+
+            const email = document.getElementById(`signup-${type}-email`).value.trim().toLowerCase();
+            const name = (type === 'user'
+                ? document.getElementById('signup-user-name').value
+                : document.getElementById('signup-pharmacy-name').value).trim();
+
+            const accounts = loadAccounts();
+
+            if (findAccount(accounts, type, email)) {
+                showMessage('An account with this email already exists. Please log in instead.', 'error');
+                switchMode('login');
+                switchAccountType(type);
+                document.getElementById(`login-${type}-email`).value = email;
+                return;
+            }
+
+            const account = {
+                id: `${type}_${Date.now()}`,
+                type,
+                name,
+                email,
+                location: type === 'pharmacy' ? document.getElementById('signup-pharmacy-location').value.trim() : '',
+                password: type === 'pharmacy'
+                    ? document.getElementById('signup-pharmacy-password').value
+                    : document.getElementById('signup-user-password').value,
+                createdAt: Date.now()
+            };
+
+            accounts.push(account);
+            saveAccounts(accounts);
+            setSession(account);
+            redirectToDashboard(type, name);
+        }
+
+        function handleLogin(event, type) {
+            event.preventDefault();
+            clearMessage();
+
+            const email = document.getElementById(`login-${type}-email`).value.trim().toLowerCase();
+            const password = document.getElementById(`login-${type}-password`).value;
+            const accounts = loadAccounts();
+            const account = findAccount(accounts, type, email);
+
+            if (!account) {
+                showMessage('Account not found. Please sign up first.', 'error');
+                switchMode('signup');
+                switchAccountType(type);
+                return;
+            }
+
+            if (account.password !== password) {
+                showMessage('Incorrect password. Please try again.', 'error');
+                return;
+            }
+
+            setSession(account);
+            redirectToDashboard(type, account.name);
+        }
+
+        function redirectToDashboard(type, name) {
+            const encodedName = encodeURIComponent(name);
+            if (type === 'user') {
+                window.location.href = `user-dashboard.html?name=${encodedName}`;
+            } else {
+                window.location.href = `pharmacy-dashboard.html?name=${encodedName}`;
+            }
+        }
+
+        // init
+        updateFormVisibility();
     </script>
 </body>
 </html>

@@ -8,9 +8,9 @@ Patients across Kenya routinely waste time and resources trying to find medicine
 
 MediTrac gives real-time, searchable visibility into medicine availability and pricing across partner pharmacies:
 
-- **Real-time search & API integration** — query live stock and price data instead of calling around.
-- **Map-based results** — see nearby pharmacies that actually have the medicine in stock.
-- **Live stock updates** — pharmacy inventories sync regularly so results stay accurate.
+- **Search & compare** — search a drug and see every partner pharmacy that stocks it, sorted by price.
+- **Pharmacy self-service** — pharmacies manage their own shelf inventory (add medications, update stock levels) from their own dashboard.
+- **Patient tracking** — patients can "track" a medicine/pharmacy combo and see it surfaced on their dashboard.
 
 ## Unique Value Proposition
 
@@ -46,7 +46,6 @@ MediTrac gives real-time, searchable visibility into medicine availability and p
 ## Cost Structure
 
 - Cloud hosting
-- API maintenance
 - Marketing
 - Compliance/legal fees for health data privacy
 
@@ -61,7 +60,6 @@ MediTrac gives real-time, searchable visibility into medicine availability and p
 A key open question for the platform: **how do we ensure no counterfeit medicine is tracked or sold through MediTrac?** Planned safeguards include:
 
 - Only onboarding verified, licensed pharmacies as data partners (no unverified/individual listings).
-- Pulling stock and pricing data from pharmacy inventory systems rather than allowing manual/self-reported listings.
 - Periodic verification/audit of partner pharmacy licenses.
 - MediTrac displays availability and connects users to licensed pharmacies — it does not process medicine sales directly, which limits exposure to counterfeit transactions but still requires partner vetting.
 
@@ -69,87 +67,69 @@ This is an area we'll keep iterating on as the platform grows (see Roadmap).
 
 ---
 
-## How It Works
+## Current Status: Frontend Prototype (no backend yet)
 
-1. A user searches for a medicine by name on the homepage.
-2. The frontend calls the backend API (`/api/medications`).
-3. The backend queries the `drug_availability` view, which joins `drug`, `inventory`, `pharmacy`, and `location` to return matching drugs, which pharmacies stock them, current price, quantity, and stock status.
-4. Results are shown to the user so they can see availability, price, and pharmacy location before traveling.
+This build is a **static, frontend-only prototype**. There is no server and no database right now — everything (accounts, sessions, and the medication inventory) is stored in the browser's `localStorage`. This is intentional at this stage: it lets the full user flow (register → log in → manage/search stock) be demoed and tested without standing up a backend.
 
-## Tech Stack
+> A previous version of this project had a partially-wired Postgres + Express backend (`server.js`, SQL schema files, `/api/medications` route) alongside this localStorage prototype, and `login.html` was calling that backend directly. That created two conflicting sources of truth — a real login page hitting a database that had no matching accounts, and a register page writing to `localStorage` that the login page never read from. That backend layer has been removed for now so there is a single, working, self-consistent app. It can be reintroduced later (see Roadmap) once the localStorage data model is stable and worth persisting server-side.
 
-- **Backend:** Node.js, Express 5
-- **Database:** PostgreSQL (via `pg`) — schema also includes an `mssql` dependency, kept available in case of a SQL Server integration
-- **Config:** `dotenv` for environment variables
-- **Frontend:** Static HTML/CSS (vanilla)
+### How It Works
 
-## Project Structure
+1. A user (patient or pharmacy) visits `register.html`, picks an account type, and either signs up or logs in. Both actions read/write a `meditrac_accounts` list and a `meditrac_session` object in `localStorage`.
+2. On success, they're redirected to `user-dashboard.html` or `pharmacy-dashboard.html` depending on account type.
+3. Pharmacies add/update medications on their dashboard, stored under the shared `meditrac_medications` key in `localStorage`, scoped to that pharmacy's name.
+4. Patients search `meditrac_medications` on their dashboard, see matching drugs across pharmacies sorted by price, and can "track" specific listings (stored per-patient under `meditrac_tracked_<email>`).
+5. "Log Out" clears `meditrac_session` and returns to the homepage.
+
+### Tech Stack
+
+- **Frontend:** Static HTML/CSS/vanilla JS
+- **"Database":** Browser `localStorage` (no server, no persistence beyond the browser/device)
+
+### Project Structure
 
 ```
 MEDITRAC-website-project/
-├── config/
-│   └── db.js                       # Database connection setup
-├── routes/
-│   └── medication.js               # /api/medications route handlers
-├── logos/                          # Site images/icons (logo, favicon, benefit icons)
-├── index.html                      # Landing page (search, benefits, about us)
-├── style.css                       # Styles for index.html
-├── template.html                   # Base page template
-├── template.css                    # Styles for template.html
-├── drug_availability_schema.sql    # PostgreSQL schema: drug, pharmacy, location, inventory + view
-├── server.js                       # Express app entry point
-├── package.json
-├── package-lock.json
+├── logos/                    # Site images/icons (logo, favicon, benefit icons)
+├── index.html                # Landing page (search, benefits, about us)
+├── style.css                 # Shared site styles
+├── register.html             # Single entry point for sign up AND log in (user + pharmacy)
+├── register.css              # Register page styles
+├── user-dashboard.html       # Patient dashboard: search + track medicine
+├── user-dashboard.css
+├── pharmacy-dashboard.html   # Pharmacy dashboard: manage shelf inventory
+├── pharmacy.css
 └── README.md
 ```
 
-### Database Schema Overview
+### `localStorage` Keys
 
-- **drug** — drug name, generic name, manufacturer, dosage form, strength, category.
-- **pharmacy** — registered pharmacies (name, phone, email, operating hours).
-- **location** — one address + lat/long per pharmacy, for map-based search.
-- **inventory** — links a drug to a pharmacy with quantity, price, and status (`in_stock`, `low_stock`, `out_of_stock`).
-- **drug_availability** (view) — joins all four tables for easy "search drug → see pharmacies & stock" queries.
-
-Indexes are set up on drug name/generic name/category, location city/region/coordinates, and inventory status/drug/pharmacy for fast search.
+| Key | Shape | Purpose |
+|---|---|---|
+| `meditrac_accounts` | `Array<{id, type, name, email, location, password, createdAt}>` | All registered accounts (user + pharmacy) |
+| `meditrac_session` | `{type, name, email}` | Currently logged-in account |
+| `meditrac_medications` | `Array<{id, name, form, category, quantity, unit, price, pharmacy, branch}>` | All medications across all pharmacies |
+| `meditrac_tracked_<email>` | `Array<string>` (medication ids) | A patient's tracked listings (falls back to `meditrac_tracked_guest` if not logged in) |
 
 ## Getting Started
+
+No install or build step needed:
 
 1. Clone the repo:
    ```
    git clone https://github.com/Antony101-tom/MEDITRAC-website-project.git
    cd MEDITRAC-website-project
    ```
-2. Install dependencies:
-   ```
-   npm install
-   ```
-3. Set up a PostgreSQL database and run `drug_availability_schema.sql` against it.
-4. Create a `.env` file in the project root with your database connection details, e.g.:
-   ```
-   PORT=5000
-   DATABASE_URL=postgres://user:password@localhost:5432/meditrac
-   ```
-5. Start the server:
-   ```
-   node server.js
-   ```
-6. Visit `http://localhost:5000` to confirm the backend is running, and open `index.html` (e.g. via Live Server) for the frontend.
+2. Open `index.html` directly in a browser, or serve the folder with any static server (e.g. VS Code Live Server) so relative paths resolve cleanly.
+3. Register a pharmacy account, add some medications, then register a patient account and search for them.
 
-## API
-
-| Method | Endpoint              | Description                          |
-|--------|------------------------|--------------------------------------|
-| GET    | `/`                    | Health check — confirms server is up |
-| GET    | `/api/medications`     | Medication search/availability data  |
-
-*(Expand this table as more routes are added to `routes/medication.js`.)*
+Note: since data lives in `localStorage`, it's per-browser — a pharmacy's inventory added in one browser won't show up for a patient searching in a different browser/device. That's the main limitation a real backend would solve (see Roadmap).
 
 ## Roadmap
 
-- [ ] Connect frontend search bar to `/api/medications` endpoint
-- [ ] Finalize pharmacy partner onboarding & API integration
-- [ ] Implement map-based search UI using `location` lat/long data
+- [ ] Reintroduce a real backend (Express + Postgres) once the localStorage data model is finalized, so data isn't per-browser
+- [ ] Wire `register.html` / dashboards to backend API routes instead of `localStorage`
+- [ ] Implement map-based search UI using pharmacy location data
 - [ ] Build pharmacy verification process (counterfeit prevention)
 - [ ] Add premium "back-in-stock" alert subscriptions
 - [ ] Launch in a pilot area (local clinics + community outreach)

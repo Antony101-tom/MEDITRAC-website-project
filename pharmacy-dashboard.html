@@ -6,20 +6,71 @@
     <title>Pharmacy Control Center - Meditrac</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="pharmacy.css">
-   
+    <style>
+        /* --- Add / Edit Medication modal (kept inline since it's new to this page) --- */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(26, 32, 44, 0.55);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-overlay.open { display: flex; }
+        .modal-box {
+            background: #fff;
+            width: 100%;
+            max-width: 460px;
+            border-radius: 12px;
+            padding: 28px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.25);
+            max-height: 88vh;
+            overflow-y: auto;
+        }
+        .modal-box h3 { margin: 0 0 4px; color: #2d3748; }
+        .modal-box .modal-sub { color: #718096; font-size: 0.85rem; margin: 0 0 20px; }
+        .form-row { margin-bottom: 14px; display: flex; flex-direction: column; gap: 6px; }
+        .form-row label { font-size: 0.8rem; font-weight: 600; color: #4a5568; }
+        .form-row input, .form-row select {
+            padding: 10px 12px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-family: inherit;
+        }
+        .form-row.two-col { flex-direction: row; gap: 12px; }
+        .form-row.two-col > div { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+        .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 22px; }
+        .btn-secondary {
+            background: #edf2f7; color: #2d3748; border: none; padding: 10px 18px;
+            border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 0.85rem;
+        }
+        .btn-primary {
+            background: #2b6cb0; color: #fff; border: none; padding: 10px 18px;
+            border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 0.85rem;
+        }
+        .form-error { color: #e53e3e; font-size: 0.8rem; display: none; margin-top: -6px; margin-bottom: 10px; }
+        .toast {
+            position: fixed; bottom: 24px; right: 24px; background: #2d3748; color: #fff;
+            padding: 12px 18px; border-radius: 8px; font-size: 0.85rem; z-index: 1100;
+            opacity: 0; transform: translateY(10px); transition: all 0.25s ease; pointer-events: none;
+        }
+        .toast.show { opacity: 1; transform: translateY(0); }
+    </style>
 </head>
 <body>
 
     <nav class="navbar">
         <div class="logo-container">
-            <a href="index.html" class="brand-text"><span class="brand-cursive-m">M</span>editrac</a>
+            <a href="index.html"><img class="logo" src="/logos/logo.png"></a>
         </div>
         <div class="nav-links">
             <div style="text-align: right; margin-right: 5px;">
                 <p style="font-weight: 700; color: #2d3748; font-size: 0.9rem; line-height: 1;">Partner Terminal</p>
                 <small style="color: #319795; font-weight: 600; font-size: 0.75rem;">● Store Profile Live</small>
             </div>
-            <a href="index.html" class="nav-btn" style="background-color: #e53e3e; box-shadow: none;">Log Out</a>
+            <a href="index.html" class="nav-btn" style="background-color: #e53e3e; box-shadow: none;" onclick="localStorage.removeItem('meditrac_session');">Log Out</a>
         </div>
     </nav>
 
@@ -52,8 +103,8 @@
                 </div>
                 <div class="p-card">
                     <span>Catalog Coverage</span>
-                    <h2>94.2%</h2>
-                    <p style="color: #319795;">1,204 active formulations</p>
+                    <h2 id="catalog-count">94.2%</h2>
+                    <p style="color: #319795;" id="catalog-sub">1,204 active formulations</p>
                 </div>
             </div>
 
@@ -61,7 +112,7 @@
                 <div class="panel-header">
                     <h3>Pharmacy Shelf Inventory List</h3>
                     <div class="panel-actions">
-                        <button onclick="addMedication()">+ Add New Medication</button>
+                        <button onclick="openAddModal()">+ Add New Medication</button>
                     </div>
                 </div>
 
@@ -76,8 +127,8 @@
                                 <th>System Actions</th>
                             </tr>
                         </thead>
-                        <tbody id="inventory-body">
-                            <tr><td colspan="5">Loading inventory...</td></tr>
+                        <tbody id="stock-table-body">
+                            <!-- Rows are rendered from localStorage by renderTable() -->
                         </tbody>
                     </table>
                 </div>
@@ -85,140 +136,198 @@
         </main>
     </div>
 
+    <!-- Add Medication Modal -->
+    <div class="modal-overlay" id="add-modal">
+        <div class="modal-box">
+            <h3>Add New Medication</h3>
+            <p class="modal-sub">This pushes straight to your live shelf inventory, and becomes searchable to patients immediately.</p>
+
+            <div class="form-row">
+                <label>Medication Name</label>
+                <input type="text" id="f-name" placeholder="e.g. Paracetamol 500mg">
+            </div>
+            <div class="form-row">
+                <label>Form / Pack Details</label>
+                <input type="text" id="f-form" placeholder="e.g. Tablets • 10x10 pack">
+            </div>
+            <div class="form-row">
+                <label>Classification Group</label>
+                <input type="text" id="f-category" placeholder="e.g. Analgesic / Pain Relief">
+            </div>
+            <div class="form-row two-col">
+                <div>
+                    <label>Shelf Quantity</label>
+                    <input type="number" id="f-quantity" min="0" placeholder="e.g. 40">
+                </div>
+                <div>
+                    <label>Unit Label</label>
+                    <input type="text" id="f-unit" placeholder="e.g. Boxes / Vials">
+                </div>
+            </div>
+            <div class="form-row two-col">
+                <div>
+                    <label>Retail Unit Price (KES)</label>
+                    <input type="number" id="f-price" min="0" placeholder="e.g. 650">
+                </div>
+                <div>
+                    <label>Branch</label>
+                    <input type="text" id="f-branch" placeholder="e.g. Kilimani Branch">
+                </div>
+            </div>
+            <p class="form-error" id="form-error">Please fill in the medication name, quantity, and price.</p>
+
+            <div class="modal-actions">
+                <button class="btn-secondary" onclick="closeAddModal()">Cancel</button>
+                <button class="btn-primary" onclick="submitAddMedication()">Save to Inventory</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
     <script>
+        const STORAGE_KEY = 'meditrac_medications';
+        const LOW_STOCK_THRESHOLD = 5;
+
+        // The pharmacy's own identity for records it creates. Prefers the
+        // ?name= param (fresh login/signup redirect), then falls back to the
+        // saved session from register.html. No more fake fallback name/branch —
+        // if neither is available this is an unauthenticated visit.
         const params = new URLSearchParams(window.location.search);
-        const name = params.get('name');
-        if (name) {
-            document.getElementById('pharmacy-greeting').innerText = `Welcome back, ${name}!`;
-    }
+        let session = null;
+        try { session = JSON.parse(localStorage.getItem('meditrac_session') || 'null'); } catch (e) { /* ignore */ }
 
-        const API_BASE_URL = 'http://localhost:5000';
-        const pharmacyId = localStorage.getItem('meditrac_id');
-        const inventoryBody = document.getElementById('inventory-body');
+        const pharmacyName = params.get('name') || (session && session.type === 'pharmacy' ? session.name : null) || 'Partner Pharmacy';
+        // Real registered location (from sign-up), not a placeholder. Falls
+        // through to an empty string if genuinely unknown, so the admin sees
+        // a blank field to fill in rather than fake data.
+        const defaultBranch = params.get('branch') || (session && session.type === 'pharmacy' ? session.location : '') || '';
 
-        function statusLabel(status, qty) {
-            const readable = status.replace('_', ' ');
-            const cls = status === 'out_of_stock' ? 'low' : (status === 'low_stock' ? 'low' : 'high');
-            return `<span class="status-badge ${cls}">${readable} (${qty})</span>`;
+        document.getElementById('pharmacy-greeting').innerText = `Welcome back, ${pharmacyName}!`;
+
+        function loadAllMedications() {
+            try {
+                const raw = localStorage.getItem(STORAGE_KEY);
+                return raw ? JSON.parse(raw) : [];
+            } catch (e) {
+                console.warn('Could not read medication database.', e);
+                return [];
+            }
         }
 
-        async function loadInventory() {
-            if (!pharmacyId) {
-                inventoryBody.innerHTML = '<tr><td colspan="5">Please log in as a pharmacy to view your inventory.</td></tr>';
+        function loadMedications() {
+            return loadAllMedications().filter(med => med.pharmacy === pharmacyName);
+        }
+
+        function saveMedications(list) {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+        }
+
+        function renderTable() {
+            const meds = loadMedications();
+            const tbody = document.getElementById('stock-table-body');
+
+            if (meds.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding: 36px 20px; color:#a0aec0;">No medications added yet. Click "+ Add New Medication" above to get started.</td></tr>`;
+                document.getElementById('catalog-count').innerText = '0';
+                document.getElementById('catalog-sub').innerText = 'No active formulations yet';
                 return;
             }
 
-            try {
-                const response = await fetch(`${API_BASE_URL}/api/medications/pharmacy/${pharmacyId}`);
-                const result = await response.json();
+            tbody.innerHTML = '';
+            meds.forEach(med => {
+                const isLow = Number(med.quantity) <= LOW_STOCK_THRESHOLD;
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><strong>${escapeHtml(med.name)}</strong><br><small style="color:#a0aec0;">${escapeHtml(med.form || '')}</small></td>
+                    <td>${escapeHtml(med.category || '')}</td>
+                    <td><span class="status-badge ${isLow ? 'low' : 'high'}">${isLow ? 'Low Stock' : 'In Stock'} (${med.quantity} ${escapeHtml(med.unit || '')})</span></td>
+                    <td style="font-weight: 600; color:#2d3748;">KES ${Number(med.price).toLocaleString()}</td>
+                    <td><button class="action-edit-btn" onclick="updateStock('${med.id}')">Update Stock</button></td>
+                `;
+                tbody.appendChild(tr);
+            });
 
-                if (!response.ok || result.data.length === 0) {
-                    inventoryBody.innerHTML = '<tr><td colspan="5">No medications in your inventory yet.</td></tr>';
-                    return;
-                }
-
-                inventoryBody.innerHTML = result.data.map(item => `
-                    <tr>
-                        <td><strong>${item.drug_name}</strong><br><small style="color:#a0aec0;">${item.dosage_form || ''}</small></td>
-                        <td>${item.category || '—'}</td>
-                        <td>${statusLabel(item.status, item.quantity_available)}</td>
-                        <td style="font-weight: 600; color:#2d3748;">KES ${item.price}</td>
-                        <td><button class="action-edit-btn" onclick="updateStock(${item.inventory_id}, ${item.quantity_available}, ${item.price})">Update Stock</button></td>
-                    </tr>
-                `).join('');
-
-            } catch (err) {
-                console.error('Inventory load failed:', err);
-                inventoryBody.innerHTML = '<tr><td colspan="5">Could not reach the server. Is the backend running?</td></tr>';
-            }
-        }
-    
-
-        async function updateStock(inventoryId, currentQty, currentPrice) {
-            const newQty = prompt('Enter new quantity available:', currentQty);
-            if (newQty === null) return;
-
-            const newPrice = prompt('Enter new price (KES):', currentPrice);
-            if (newPrice === null) return;
-
-            let newStatus = 'in_stock';
-            const qtyNum = parseInt(newQty, 10);
-            if (qtyNum === 0) newStatus = 'out_of_stock';
-            else if (qtyNum <= 5) newStatus = 'low_stock';
-
-            try {
-                const response = await fetch(`${API_BASE_URL}/api/medications/inventory/${inventoryId}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        quantity_available: qtyNum,
-                        price: parseFloat(newPrice),
-                        status: newStatus
-                    })
-                });
-
-                if (!response.ok) {
-                    const result = await response.json();
-                    alert(result.message || 'Update failed.');
-                    return;
-                }
-                
-
-                loadInventory();
-
-            } catch (err) {
-                console.error('Update failed:', err);
-            alert('Could not reach the server.');
-            }
+            document.getElementById('catalog-count').innerText = meds.length;
+            document.getElementById('catalog-sub').innerText = `${meds.length} active formulations`;
         }
 
-        async function addMedication() {
-    const drugName = prompt('Drug name:');
-    if (!drugName) return;
+        function escapeHtml(str) {
+            return String(str).replace(/[&<>"']/g, s => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[s]));
+        }
 
-    const category = prompt('Category (e.g. antibiotic, analgesic):') || null;
-    const dosageForm = prompt('Dosage form (e.g. tablet, capsule, syrup):') || null;
-    const quantity = prompt('Quantity available:', '10');
-    if (quantity === null) return;
+        function openAddModal() {
+            document.getElementById('form-error').style.display = 'none';
+            ['f-name','f-form','f-category','f-quantity','f-price'].forEach(id => document.getElementById(id).value = '');
+            document.getElementById('f-unit').value = '';
+            document.getElementById('f-branch').value = defaultBranch;
+            document.getElementById('add-modal').classList.add('open');
+        }
 
-    const price = prompt('Price (KES):', '100');
-    if (price === null) return;
+        function closeAddModal() {
+            document.getElementById('add-modal').classList.remove('open');
+        }
 
-    const qtyNum = parseInt(quantity, 10);
-    let status = 'in_stock';
-    if (qtyNum === 0) status = 'out_of_stock';
-    else if (qtyNum <= 5) status = 'low_stock';
+        function submitAddMedication() {
+            const name = document.getElementById('f-name').value.trim();
+            const quantity = document.getElementById('f-quantity').value;
+            const price = document.getElementById('f-price').value;
 
-    try {
-        const response = await fetch(`${API_BASE_URL}/api/medications/pharmacy/${pharmacyId}/inventory`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                drug_name: drugName,
-                category,
-                dosage_form: dosageForm,
-                quantity_available: qtyNum,
-                price: parseFloat(price),
-                status
-            })
+            if (!name || quantity === '' || price === '') {
+                document.getElementById('form-error').style.display = 'block';
+                return;
+            }
+
+            const newMed = {
+                id: 'm' + Date.now(),
+                name,
+                form: document.getElementById('f-form').value.trim(),
+                category: document.getElementById('f-category').value.trim() || 'General',
+                quantity: Number(quantity),
+                unit: document.getElementById('f-unit').value.trim() || 'Units',
+                price: Number(price),
+                pharmacy: pharmacyName,
+                branch: document.getElementById('f-branch').value.trim() || defaultBranch
+            };
+
+            const meds = loadAllMedications();
+            meds.push(newMed);
+            saveMedications(meds);
+            renderTable();
+            closeAddModal();
+            showToast(`${name} added to your live inventory.`);
+        }
+
+        function updateStock(id) {
+            const meds = loadAllMedications();
+            const med = meds.find(m => m.id === id && m.pharmacy === pharmacyName);
+            if (!med) return;
+            const next = prompt(`Update shelf quantity for ${med.name}:`, med.quantity);
+            if (next === null) return;
+            const parsed = Number(next);
+            if (Number.isNaN(parsed) || parsed < 0) {
+                alert('Please enter a valid quantity.');
+                return;
+            }
+            med.quantity = parsed;
+            saveMedications(meds);
+            renderTable();
+            showToast(`${med.name} stock updated to ${parsed} ${med.unit}.`);
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.innerText = msg;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 2500);
+        }
+
+        // Close modal when clicking outside the box
+        document.getElementById('add-modal').addEventListener('click', (e) => {
+            if (e.target.id === 'add-modal') closeAddModal();
         });
 
-        const result = await response.json();
-
-        if (!response.ok) {
-            alert(result.message || 'Could not add medication.');
-            return;
-        }
-
-        loadInventory();
-
-    } catch (err) {
-        console.error('Add medication failed:', err);
-        alert('Could not reach the server.');
-    }
-}
-
-        loadInventory();
+        renderTable();
     </script>
 </body>
 </html>
