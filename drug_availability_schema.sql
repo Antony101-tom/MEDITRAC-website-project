@@ -38,7 +38,7 @@ CREATE TABLE location (
     city          VARCHAR(100),
     region        VARCHAR(100),
     latitude      DECIMAL(9, 6),
-    longitude     DECIMAL(9, 6),
+    longitude     DECIMAL(9, 6), 
     UNIQUE(pharmacy_id)                 -- one location per pharmacy
 );
 
