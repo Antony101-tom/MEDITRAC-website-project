@@ -7,6 +7,8 @@
     <link rel="icon" type="image/png" href="logos/favicon.png">
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="register.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
         /* Extra states for the sign up / log in flow. Kept inline since
            register.css wasn't available to edit directly — move these into
@@ -30,19 +32,6 @@
             text-decoration: underline;
         }
 
-        /* Now that the Sign Up/Log In toggle row is gone, content fits back
-           within style.css's original fixed 600px box. Tightened a touch
-           more (toggle row + form-group spacing) so it sits comfortably
-           inside that height with room to spare, and overflow:hidden is a
-           safety net in case an error message ever wraps to two lines. */
-        .main-auth-container {
-            height: 600px;
-            overflow: hidden;
-        }
-        .auth-container {
-            height: 600px;
-            overflow: hidden;
-        }
         #type-toggle {
             margin-bottom: 16px;
         }
@@ -72,7 +61,7 @@
     <div class="main-auth-container">
 
         <div class="register-logo-container">
-            <img class="register-logo" src="/logos/process-illustration.png";>
+            <img class="register-logo" src="/logos/process-illustration.png">
         </div>
 
         <div class="auth-container">
@@ -98,7 +87,7 @@
             </div>
             <div class="form-group">
                 <label>Location / Estate</label>
-                <input type="text" required placeholder="e.g., Kilimani, Nairobi">
+                <input type="text" id="signup-user-location" required placeholder="e.g., Kilimani, Nairobi">
             </div>
             <div class="form-group">
                 <label>Password</label>
@@ -120,6 +109,13 @@
             <div class="form-group">
                 <label>Physical Location</label>
                 <input type="text" id="signup-pharmacy-location" required placeholder="e.g., Tom Mboya Street, Nairobi">
+            </div>
+            <div class="form-group">
+                <label>Pin Your Pharmacy on the Map</label>
+                <div id="pharmacy-map" style="height: 180px; border-radius: 8px; border: 1px solid #e2e8f0;"></div>
+                <small style="color:#718096; font-size:0.78rem; margin-top: 2px;">Click the map to drop a pin at your pharmacy's exact spot — this is how patients will see how far they are from you.</small>
+                <input type="hidden" id="signup-pharmacy-lat">
+                <input type="hidden" id="signup-pharmacy-lng">
             </div>
             <div class="form-group">
                 <label>Password</label>
@@ -217,10 +213,56 @@
             updateFormVisibility();
         }
 
+        // ---------- pharmacy location picker (Leaflet) ----------
+        let pharmacyMap = null;
+        let pharmacyMarker = null;
+
+        function initPharmacyMapIfNeeded() {
+            if (pharmacyMap) {
+                // Container was display:none and is now visible again — Leaflet
+                // needs to be told to recalculate its size or tiles render blank/grey.
+                setTimeout(() => pharmacyMap.invalidateSize(), 0);
+                return;
+            }
+
+            pharmacyMap = L.map('pharmacy-map').setView([-1.2921, 36.8219], 12); // default: Nairobi CBD
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap contributors',
+                maxZoom: 19
+            }).addTo(pharmacyMap);
+
+            pharmacyMap.on('click', (e) => setPharmacyPin(e.latlng.lat, e.latlng.lng));
+
+            // Best-effort: recentre on the pharmacy's actual current location so
+            // most pharmacies just fine-tune the pin instead of hunting for their area.
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (pos) => pharmacyMap.setView([pos.coords.latitude, pos.coords.longitude], 15),
+                    () => { /* denied/unavailable — keep the default Nairobi view */ }
+                );
+            }
+
+            setTimeout(() => pharmacyMap.invalidateSize(), 0);
+        }
+
+        function setPharmacyPin(lat, lng) {
+            document.getElementById('signup-pharmacy-lat').value = lat;
+            document.getElementById('signup-pharmacy-lng').value = lng;
+            if (pharmacyMarker) {
+                pharmacyMarker.setLatLng([lat, lng]);
+            } else {
+                pharmacyMarker = L.marker([lat, lng]).addTo(pharmacyMap);
+            }
+        }
+
         function updateFormVisibility() {
             const forms = ['signup-user-form', 'signup-pharmacy-form', 'login-user-form', 'login-pharmacy-form'];
             forms.forEach(id => document.getElementById(id).classList.add('hidden-form'));
             document.getElementById(`${currentMode}-${currentType}-form`).classList.remove('hidden-form');
+
+            if (currentMode === 'signup' && currentType === 'pharmacy') {
+                initPharmacyMapIfNeeded();
+            }
 
             const hint = document.getElementById('switch-hint');
             if (currentMode === 'signup') {
@@ -263,12 +305,29 @@
                 return;
             }
 
+            let latitude = null;
+            let longitude = null;
+            if (type === 'pharmacy') {
+                const latVal = document.getElementById('signup-pharmacy-lat').value;
+                const lngVal = document.getElementById('signup-pharmacy-lng').value;
+                if (!latVal || !lngVal) {
+                    showMessage("Please click the map to pin your pharmacy's location before registering.", 'error');
+                    return;
+                }
+                latitude = Number(latVal);
+                longitude = Number(lngVal);
+            }
+
             const account = {
                 id: `${type}_${Date.now()}`,
                 type,
                 name,
                 email,
-                location: type === 'pharmacy' ? document.getElementById('signup-pharmacy-location').value.trim() : '',
+                location: type === 'pharmacy'
+                    ? document.getElementById('signup-pharmacy-location').value.trim()
+                    : document.getElementById('signup-user-location').value.trim(),
+                latitude,
+                longitude,
                 password: type === 'pharmacy'
                     ? document.getElementById('signup-pharmacy-password').value
                     : document.getElementById('signup-user-password').value,

@@ -6,7 +6,11 @@
     <title>Patient Portal - Meditrac</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="user-dashboard.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
+        #results-map { height: 320px; border-radius: 12px; }
+        .leaflet-popup-content { font-size: 0.85rem; }
         .empty-state {
             grid-column: 1 / -1;
             text-align: center;
@@ -141,6 +145,14 @@
                 </div>
             </div>
 
+            <div class="panel" id="map-panel" style="margin-bottom: 35px; display: none;">
+                <div class="panel-header">
+                    <h3>Nearby Pharmacies</h3>
+                    <small id="map-status" style="color:#718096; font-size:0.8rem;"></small>
+                </div>
+                <div id="results-map"></div>
+            </div>
+
             <div class="feed-heading">
                 <h3 id="results-heading">Your Active Medicine Trackers</h3>
                 <small class="clear-search-link" id="clear-search" style="display:none;">Clear search</small>
@@ -172,6 +184,40 @@
         // Tracked medicine is scoped per logged-in patient. Anonymous
         // visitors (no session) share a "guest" tracker list.
         const TRACKED_KEY = 'meditrac_tracked_' + (session && session.type === 'user' && session.email ? session.email : 'guest');
+
+        // ---------- location / distance ----------
+        let userLoc = null; // { lat, lng } once the browser grants access, else stays null
+        let resultsMap = null;
+        let resultsMarkers = [];
+
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                    userLoc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+                    runSearch(); // re-render whatever's on screen now that distances are available
+                },
+                () => { /* denied/unavailable — search still works, just without distance sorting */ }
+            );
+        }
+
+        function loadPharmacyCoords() {
+            let accounts = [];
+            try { accounts = JSON.parse(localStorage.getItem('meditrac_accounts') || '[]'); } catch (e) { accounts = []; }
+            const coords = new Map();
+            accounts
+                .filter(a => a.type === 'pharmacy' && typeof a.latitude === 'number' && typeof a.longitude === 'number')
+                .forEach(a => coords.set(a.name, { lat: a.latitude, lng: a.longitude }));
+            return coords;
+        }
+
+        function haversineKm(lat1, lng1, lat2, lng2) {
+            const toRad = (d) => d * Math.PI / 180;
+            const R = 6371;
+            const dLat = toRad(lat2 - lat1);
+            const dLng = toRad(lng2 - lng1);
+            const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        }
 
         function loadMedications() {
             try {
@@ -257,6 +303,7 @@
             const grid = document.getElementById('results-grid');
             document.getElementById('results-heading').innerText = 'Your Active Medicine Trackers';
             document.getElementById('clear-search').style.display = 'none';
+            document.getElementById('map-panel').style.display = 'none';
             updateMetrics();
 
             const meds = loadMedications();
@@ -299,6 +346,67 @@
             }).join('');
         }
 
+        function ensureResultsMap() {
+            if (resultsMap) return;
+            resultsMap = L.map('results-map').setView([-1.2921, 36.8219], 12);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap contributors',
+                maxZoom: 19
+            }).addTo(resultsMap);
+        }
+
+        // byPharmacy: Map<pharmacyName, { coords: {lat,lng}, distanceKm: number|null, meds: [...] }>
+        function renderMap(byPharmacy) {
+            const panel = document.getElementById('map-panel');
+            const statusEl = document.getElementById('map-status');
+
+            if (byPharmacy.size === 0) {
+                panel.style.display = 'none';
+                return;
+            }
+
+            panel.style.display = 'block';
+            ensureResultsMap();
+            setTimeout(() => resultsMap.invalidateSize(), 0);
+
+            resultsMarkers.forEach(m => resultsMap.removeLayer(m));
+            resultsMarkers = [];
+
+            const bounds = [];
+
+            byPharmacy.forEach((info, pharmacyName) => {
+                const marker = L.marker([info.coords.lat, info.coords.lng]).addTo(resultsMap);
+                const distText = info.distanceKm !== null ? `${info.distanceKm.toFixed(1)} km away` : 'Distance unknown';
+                const medsHtml = info.meds.map(med => `
+                    <div style="margin-top:6px;">
+                        ${escapeHtml(med.name)} — KES ${Number(med.price).toLocaleString()}
+                        <button onclick="trackMedication('${med.id}')" style="margin-left:6px;padding:3px 8px;border:none;border-radius:6px;background:#2b6cb0;color:#fff;font-size:0.75rem;cursor:pointer;">Track</button>
+                    </div>
+                `).join('');
+                marker.bindPopup(`<strong>${escapeHtml(pharmacyName)}</strong><br><span style="color:#718096;">${distText}</span>${medsHtml}`);
+                resultsMarkers.push(marker);
+                bounds.push([info.coords.lat, info.coords.lng]);
+            });
+
+            if (userLoc) {
+                const me = L.circleMarker([userLoc.lat, userLoc.lng], {
+                    radius: 8, color: '#e53e3e', fillColor: '#e53e3e', fillOpacity: 0.9
+                }).addTo(resultsMap).bindPopup('Your location');
+                resultsMarkers.push(me);
+                bounds.push([userLoc.lat, userLoc.lng]);
+            }
+
+            if (bounds.length === 1) {
+                resultsMap.setView(bounds[0], 14);
+            } else {
+                resultsMap.fitBounds(bounds, { padding: [30, 30] });
+            }
+
+            statusEl.textContent = userLoc
+                ? 'Pins sorted by distance from your current location'
+                : 'Allow location access in your browser to sort by distance';
+        }
+
         function renderSearchResults(query) {
             const grid = document.getElementById('results-grid');
             const meds = loadMedications();
@@ -318,12 +426,24 @@
                         <strong>"${escapeHtml(query)}" is unavailable</strong>
                         None of our partner pharmacies currently list this medicine. Try a different name, or check back later.
                     </div>`;
+                renderMap(new Map());
                 return;
             }
 
+            // Attach each match's pharmacy coordinates + distance from the
+            // patient (when both are known) up front, so sorting and the map
+            // use the exact same numbers.
+            const pharmacyCoords = loadPharmacyCoords();
+            matches.forEach(med => {
+                med._coords = pharmacyCoords.get(med.pharmacy) || null;
+                med._distanceKm = (userLoc && med._coords)
+                    ? haversineKm(userLoc.lat, userLoc.lng, med._coords.lat, med._coords.lng)
+                    : null;
+            });
+
             // Group matches by medicine name so the same drug stocked by
-            // several pharmacies shows as one card with multiple options,
-            // sorted cheapest-first.
+            // several pharmacies shows as one card with multiple options —
+            // nearest-first when we know distances, cheapest-first otherwise.
             const groups = new Map();
             matches.forEach(med => {
                 const key = (med.name || '').trim().toLowerCase();
@@ -334,12 +454,16 @@
             const trackedIds = loadTrackedIds();
 
             grid.innerHTML = Array.from(groups.values()).map(group => {
-                group.sort((a, b) => Number(a.price) - Number(b.price));
-                const first = group[0];
-                const anyLow = group.some(m => Number(m.quantity) <= LOW_STOCK_THRESHOLD && Number(m.quantity) > 0);
-                const accent = anyLow ? '#dd6b20' : '#2b6cb0';
+                const withDist = group.filter(m => m._distanceKm !== null).sort((a, b) => a._distanceKm - b._distanceKm);
+                const withoutDist = group.filter(m => m._distanceKm === null).sort((a, b) => Number(a.price) - Number(b.price));
+                const sortedGroup = [...withDist, ...withoutDist];
 
-                const optionsHtml = group.map(med => {
+                const first = sortedGroup[0];
+                const anyLow = sortedGroup.some(m => Number(m.quantity) <= LOW_STOCK_THRESHOLD && Number(m.quantity) > 0);
+                const accent = anyLow ? '#dd6b20' : '#2b6cb0';
+                const sortLabel = withDist.length > 0 ? 'sorted by distance' : 'sorted by lowest price';
+
+                const optionsHtml = sortedGroup.map(med => {
                     const isLow = Number(med.quantity) <= LOW_STOCK_THRESHOLD;
                     const tracked = trackedIds.includes(med.id);
                     return `
@@ -347,6 +471,7 @@
                             <div class="po-info">
                                 <strong>${escapeHtml(med.pharmacy)}</strong>
                                 <span class="po-sub">${formatBranch(med.branch)}</span>
+                                ${med._distanceKm !== null ? `<span class="po-sub">${med._distanceKm.toFixed(1)} km away</span>` : ''}
                             </div>
                             <div class="po-stock ${isLow ? 'low' : ''}">
                                 ${med.quantity > 0
@@ -367,11 +492,23 @@
                                 <span>${escapeHtml(first.category || '')}${first.form ? ' • ' + escapeHtml(first.form) : ''}</span>
                             </div>
                         </div>
-                        ${group.length > 1 ? `<div class="multi-pharmacy-note">Available at ${group.length} partner pharmacies — sorted by lowest price</div>` : ''}
+                        ${sortedGroup.length > 1 ? `<div class="multi-pharmacy-note">Available at ${sortedGroup.length} partner pharmacies — ${sortLabel}</div>` : ''}
                         <div class="pharmacy-options">${optionsHtml}</div>
                     </div>
                 `;
             }).join('');
+
+            // Map shows one pin per pharmacy (not per drug listing), so a
+            // pharmacy stocking several matched drugs still gets a single pin.
+            const byPharmacy = new Map();
+            matches.forEach(med => {
+                if (!med._coords) return;
+                if (!byPharmacy.has(med.pharmacy)) {
+                    byPharmacy.set(med.pharmacy, { coords: med._coords, distanceKm: med._distanceKm, meds: [] });
+                }
+                byPharmacy.get(med.pharmacy).meds.push(med);
+            });
+            renderMap(byPharmacy);
         }
 
         function runSearch() {
