@@ -56,11 +56,6 @@ meditrac-react/
 │                                   that used to live in inline <style> blocks)
 ```
 
-## Important: `public/logos/`
-
-The original site referenced a `logos/` folder (logo, favicon, icons, illustrations) that wasn't part of this port since those image files weren't provided. Drop that same `logos/` folder into `public/logos/` here and everything will resolve exactly like before (`/logos/logo.png`, `/logos/favicon.png`, etc.) — no code changes needed, Vite serves `public/` at the site root.
-
-## Notes
 
 - Same as the static version: data lives in `localStorage`, so it's per-browser. A pharmacy's inventory won't show up for a patient in a different browser/device — see the static README's Roadmap for when a real backend gets reintroduced.
 - Only pharmacies registered through this app have map coordinates (`latitude`/`longitude` on their account). Any pre-existing test accounts created before the map feature won't have a pin or a distance — they'll just show "Distance unknown" and sort after the pharmacies that do.
