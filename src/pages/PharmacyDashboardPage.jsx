@@ -119,24 +119,6 @@ export default function PharmacyDashboardPage() {
             </div>
           )}
 
-          <div className="metrics-grid">
-            <div className="p-card">
-              <span>Profile Traffic Today</span>
-              <h2>142</h2>
-              <p> +18% vs yesterday</p>
-            </div>
-            <div className="p-card">
-              <span>Search Leads Routed</span>
-              <h2>38 Patients</h2>
-              <p> Active navigation tracks</p>
-            </div>
-            <div className="p-card">
-              <span>Catalog Coverage</span>
-              <h2>{meds.length === 0 ? '0' : meds.length}</h2>
-              <p style={{ color: '#319795' }}>{meds.length === 0 ? 'No active formulations yet' : `${meds.length} active formulations`}</p>
-            </div>
-          </div>
-
           <div className="panel">
             <div className="panel-header">
               <h3>Pharmacy Shelf Inventory List</h3>

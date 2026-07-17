@@ -1,5 +1,9 @@
-// Same localStorage-backed "database" the static prototype used — kept
-// exactly as-is on purpose so any data created by the old site still works.
+// Accounts/medications stay in localStorage — they represent shared data,
+// same as before. The session is the one thing that should be per-tab (so
+// you can be logged in as a pharmacy in one tab and a patient in another,
+// side by side, in the same regular browser window) — sessionStorage gives
+// each tab its own isolated copy instead of sharing one login across all of
+// them the way localStorage would.
 const ACCOUNTS_KEY = 'meditrac_accounts';
 const SESSION_KEY = 'meditrac_session';
 
@@ -27,21 +31,21 @@ export function findAccount(accounts, type, email) {
 
 export function getSession() {
   try {
-    return JSON.parse(localStorage.getItem(SESSION_KEY) || 'null');
+    return JSON.parse(sessionStorage.getItem(SESSION_KEY) || 'null');
   } catch {
     return null;
   }
 }
 
 export function setSession(account) {
-  localStorage.setItem(
+  sessionStorage.setItem(
     SESSION_KEY,
     JSON.stringify({ type: account.type, name: account.name, email: account.email })
   );
 }
 
 export function clearSession() {
-  localStorage.removeItem(SESSION_KEY);
+  sessionStorage.removeItem(SESSION_KEY);
 }
 
 export function updateAccountCoords(type, email, lat, lng) {
