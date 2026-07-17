@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
 * {
     margin: 0;
     padding: 0;
@@ -13,27 +15,39 @@ html {
 body {
     background-color: white;
     line-height: 1.6;
+    padding-top: 64px; /* clears the fixed navbar */
 }
 
-
-.header .background {
-    object-position: center top;
-    transform: scale(1.01);
-}
-
+/* ==========================================================================
+   Navbar
+   ========================================================================== */
 
 .navbar {
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
-    height: 60px;
+    height: 64px;
     display: flex;
     justify-content: space-between;
     align-items: center;
     padding: 0 5%;
-    background: #107ACA ;
+    background: rgba(16, 122, 202, 0.85);
+    backdrop-filter: blur(14px) saturate(160%);
+    -webkit-backdrop-filter: blur(14px) saturate(160%);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
     z-index: 1000;
+    box-shadow: 0 2px 12px rgba(4, 44, 83, 0.1);
+}
+
+.logo-container {
+    display: flex;
+    align-items: center;
+}
+
+.logo {
+    height: 36px;
+    display: block;
 }
 
 .brand-text {
@@ -44,15 +58,10 @@ body {
     color: #2b6cb0;
 }
 
-.logo{
-    margin-top: 10px;
-    height: 40px;
-    margin-left: -30px;
-}
 .nav-links {
     display: flex;
     align-items: center;
-    gap: 35px;
+    gap: 32px;
 }
 
 .nav-item {
@@ -60,22 +69,23 @@ body {
     color: white;
     font-size: 1rem;
     position: relative;
-    transition: color 0.2s ease;
+    padding-bottom: 4px;
+    transition: opacity 0.2s ease;
+}
+
+.nav-item:hover {
+    opacity: 0.85;
 }
 
 .nav-item::after {
     content: "";
     position: absolute;
     left: 0;
-    bottom: -4px;
+    bottom: -2px;
     width: 0%;
     height: 2px;
     background: white;
-    transition: width 0.4s ease;
-}
-
-.nav-item:hover {
-    color: white;
+    transition: width 0.3s ease;
 }
 
 .nav-item:hover::after {
@@ -89,65 +99,89 @@ body {
     border-radius: 6px;
     font-weight: 600;
     font-size: 0.95rem;
-    box-shadow: 0 4px 12px rgba(43, 108, 176, 0.3);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .nav-btn:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 18px rgba(30, 58, 138, 0.4);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.22);
 }
 
+@media (max-width: 768px) {
+    .navbar { padding: 0 4%; }
+    .nav-links { gap: 18px; }
+    .nav-item { font-size: 0.9rem; }
+    .nav-btn { padding: 8px 16px; font-size: 0.85rem; }
+}
+
+/* ==========================================================================
+   Hero Section
+   ========================================================================== */
 
 .header {
     position: relative;
-    height: 500px;
+    min-height: 500px;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: flex-start;
-    text-align: center;
-    padding: 0 20px;
+    text-align: left;
+    padding: 60px 8%;
     overflow: hidden;
-    border-radius: 0px 0px 30px 30px;
-    
-    margin-top: 20px;
-    
+    border-radius: 0 0 30px 30px;
+    margin-top: 0;
+}
+
+.header .background {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center top;
+    z-index: -2;
 }
 
 .header::before {
     content: "";
     position: absolute;
     inset: 0;
+    background: linear-gradient(180deg, rgba(4,44,83,0.35), rgba(4,44,83,0.55));
     z-index: -1;
 }
 
-.header .background {
-    position: absolute;
-    top: 0;
-    left: 0;
-    height: 545px;
-    width: 100%;
-    object-fit: cover;
-    z-index: -2;
-    
+.intro-text {
+    max-width: 600px;
 }
 
 .intro-text h1 {
-    margin-top: -70px;
-    font-size: 28px;
+    font-family: 'Plus Jakarta Sans', 'Segoe UI', sans-serif;
+    font-size: clamp(2rem, 4.5vw, 3rem);
+    font-weight: 800;
+    letter-spacing: -0.02em;
     color: #ffffff;
-    margin-bottom: 15px;
-    margin-left: 150px;
-    text-shadow: 0 4px 18px rgba(0, 0, 0, 0.35);
+    margin-bottom: 18px;
+    line-height: 1.25;
+    text-shadow: 0 4px 18px rgba(0, 0, 0, 0.3);
 }
 
 .hero-slogan {
     font-size: 1.3rem;
     color: #e6fffa;
     max-width: 650px;
-    margin: 0 auto 35px auto;
+    margin-bottom: 35px;
     font-weight: 400;
+}
+
+.hero-subtext {
+    font-family: 'Plus Jakarta Sans', 'Segoe UI', sans-serif;
+    color: #f0f7ff;
+    font-size: 1.05rem;
+    font-weight: 400;
+    line-height: 1.6;
+    max-width: 500px;
+    margin-bottom: 32px;
 }
 
 .hero-btn {
@@ -168,33 +202,36 @@ body {
     box-shadow: 0 12px 28px rgba(124, 111, 219, 0.55);
 }
 
-.search-container {
-    margin-left: 160px;
-    width: 100%;
-    max-width: 650px;
-    display: none;
-   
-}
-
-.search-bar input {
-    border: 5px solid black;
-    width: 100%;
-    padding: 18px 28px;
-    font-size: 1.1rem;
-    border: 2px solid transparent;
+.get-started-btn {
+    display: inline-block;
+    background: linear-gradient(135deg, #2E8FE0, #107ACA);
+    color: white;
+    padding: 16px 40px;
+    font-size: 1.05rem;
+    font-weight: 600;
     border-radius: 30px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.25);
-    outline: none;
-    transition: border-color 0.2s ease;
-    display: none;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
+.get-started-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 14px 34px rgba(16, 122, 202, 0.45);
+}
+
+@media (max-width: 768px) {
+    .header { padding: 40px 6% 50px; min-height: 420px; }
+    .intro-text, .hero-subtext { max-width: 100%; }
+}
+
+/* ==========================================================================
+   Benefits Section
+   ========================================================================== */
 
 .benefits-section {
     text-align: center;
     margin-top: 30px;
 }
-
 
 .benefits-heading {
     font-size: 28px;
@@ -208,7 +245,6 @@ body {
     gap: 50px;
     flex-wrap: wrap;
     margin-bottom: 50px;
-    
 }
 
 .benefit-box {
@@ -236,7 +272,10 @@ body {
     margin-bottom: 10px;
 }
 
-/* How it works */
+/* ==========================================================================
+   How It Works
+   ========================================================================== */
+
 .how-section {
     background: #F1F7FE;
     color: black;
@@ -297,18 +336,41 @@ body {
     box-shadow: 0 6px 14px rgba(0, 0, 0, 0.2);
 }
 
-/* Our process */
+/* ==========================================================================
+   Our Process
+   ========================================================================== */
+
 .process-section {
     background: #E7F4FD;
     width: 85%;
     margin: auto;
     margin-bottom: 70px;
-    padding: 20px;
+    padding: 40px;
+    border-radius: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
 }
 
 .process-section h2 {
     font-size: 28px;
     color: #042C53;
+    text-align: center;
+}
+
+.process-visual {
+    display: flex;
+    justify-content: center;
+}
+
+.process-visual img {
+    max-width: 480px;
+    width: 100%;
+    height: auto;
+    background: transparent;
+}
+
+.process-text {
     text-align: center;
 }
 
@@ -354,7 +416,10 @@ body {
     font-size: 0.95rem;
 }
 
-/* About us */
+/* ==========================================================================
+   About Us
+   ========================================================================== */
+
 .about-heading {
     text-align: left;
     background: linear-gradient(180deg, #e3e8fc, #fdf2f8);
@@ -385,6 +450,15 @@ body {
     text-align: justify;
 }
 
+.about-heading,
+.how-section,
+.process-section {
+    scroll-margin-top: 80px;
+}
+
+/* ==========================================================================
+   Pharmacy Promo
+   ========================================================================== */
 
 .pharmacy-promo {
     display: flex;
@@ -569,8 +643,11 @@ body {
     box-shadow: 0 8px 18px rgba(46, 143, 224, 0.4);
 }
 
-/* Registration cards */
-.auth-placeholder-section{
+/* ==========================================================================
+   Registration Cards
+   ========================================================================== */
+
+.auth-placeholder-section {
     background: linear-gradient(135deg, #eff6ff, #f3f0ff);
     width: 85%;
     margin: auto;
@@ -578,11 +655,9 @@ body {
     margin-bottom: 30px;
     margin-top: 40px;
     padding: 20px;
-    
 }
 
 .auth-placeholder-section h2 {
-  
     text-align: center;
     font-size: 28px;
     color: #1e3a8a;
@@ -627,7 +702,7 @@ body {
     display: block;
     width: 100%;
     padding: 12px;
-    background:  #107ACA;
+    background: #107ACA;
     color: white;
     text-align: center;
     border-radius: 6px;
@@ -642,7 +717,7 @@ body {
 }
 
 .active-auth-btn.secondary {
-    background:  #107ACA;
+    background: #107ACA;
     box-shadow: 0 4px 12px rgba(124, 111, 219, 0.3);
 }
 
@@ -650,35 +725,35 @@ body {
     box-shadow: 0 8px 18px rgba(124, 111, 219, 0.45);
 }
 
-/* Register page form */
-.main-auth-container{
+/* ==========================================================================
+   Register Page Form
+   ========================================================================== */
+
+.main-auth-container {
     width: 80%;
     margin-left: auto;
     margin-right: auto;
     margin-top: 100px;
     position: relative;
-    background: #107ACA ;
-    height: 600px; 
-    border-radius:14px;
-           
+    background: #107ACA;
+    height: 600px;
+    border-radius: 14px;
 }
 
-.sign-up{
+.sign-up {
     color: white;
     margin-left: 60px;
-
 }
 
-.register-logo-container{
+.register-logo-container {
     position: absolute;
     top: 150px;
     left: 0;
-    width: 30%;   
+    width: 30%;
     height: 200px;
     display: flex;
     justify-content: center;
     align-items: center;
-    
 }
 
 .register-logo-container .register-logo {
@@ -686,18 +761,18 @@ body {
     height: 200px;
 }
 
-.register-logo{
+.register-logo {
     width: 100%;
     height: 100%;
     object-fit: cover;
 }
 
 .auth-container {
-    position:absolute;
+    position: absolute;
     top: 0;
     right: 0;
     background: linear-gradient(160deg, #ffffff, #f5f3ff);
-    padding:  20px 40px;
+    padding: 20px 40px;
     width: 70%;
     box-shadow: 0 10px 35px rgba(30, 58, 138, 0.1);
     text-align: center;
@@ -705,7 +780,6 @@ body {
     display: flex;
     flex-direction: column;
     border-radius: 0 14px 14px 0;
-    
 }
 
 .auth-container h2 {
@@ -782,7 +856,6 @@ body {
 .submit-btn {
     width: 70%;
     margin-top: 20px;
-   
     padding: 14px;
     background: #107ACA;
     color: white;
@@ -820,13 +893,15 @@ body {
     border: 1px solid #9ae6b4;
 }
 
-/* Footer */
+/* ==========================================================================
+   Footer
+   ========================================================================== */
+
 .footer-container {
-    background: white;
-    color: black;
-    padding: 60px 8% 30px 8%;
-    width: 80%;
-    margin: auto;
+    background: #0A2B52;
+    color: white;
+    padding: 60px 8% 30px;
+    width: 100%;
 }
 
 .footer-content {
@@ -843,18 +918,16 @@ body {
     min-width: 250px;
 }
 
-.footer-logo-text {
-    font-family: 'Georgia', 'Times New Roman', serif;
-    font-size: 1.4rem;
-    font-weight: bold;
-    font-style: italic;
-    color: black;
+.footer-logo {
+    height: 36px;
+    display: block;
+    margin-bottom: 4px;
 }
 
 .footer-brand p {
     margin-top: 10px;
     font-size: 0.9rem;
-    color: black;
+    color: #cbd5e1;
 }
 
 .footer-links-column {
@@ -872,24 +945,24 @@ body {
 }
 
 .footer-links-column a {
-    color: black;
+    color: #cbd5e1;
     font-size: 0.9rem;
     transition: color 0.2s ease;
 }
 
 .footer-links-column a:hover {
-    color: #1A86C8;
+    color: #7FC4F2;
 }
 
 .footer-contact-info {
     font-size: 0.9rem;
-    color: black;
+    color: #cbd5e1;
     margin: 0;
 }
 
 .footer-bottom {
     margin-top: 40px;
-    border-top: 1px solid #2d3748;
+    border-top: 1px solid rgba(255, 255, 255, 0.15);
     padding-top: 25px;
     text-align: center;
     width: 100%;
@@ -897,40 +970,9 @@ body {
 
 .footer-bottom small {
     font-size: 0.85rem;
-    color: black;
+    color: #94a3b8;
 }
 
-
-.about-heading,
-.how-section,
-.process-section {
-    scroll-margin-top: 80px; 
-}
-
-.process-section {
-    background: #E7F4FD;
-    width: 85%;
-    margin: auto;
-    margin-bottom: 70px;
-    padding: 40px;
-    border-radius: 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 30px;
-}
-
-.process-visual {
-    display: flex;
-    justify-content: center;
-}
-
-.process-visual img {
-    max-width: 480px;
-    width: 100%;
-    height: auto;
-    background: transparent;
-}
-
-.process-text {
-    text-align: center;
+@media (max-width: 600px) {
+    .footer-content { flex-direction: column; gap: 30px; }
 }

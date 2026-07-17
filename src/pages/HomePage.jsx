@@ -13,12 +13,9 @@ export default function HomePage() {
         <img className="background" src="/logos/img.png" alt="consultant" />
         <div className="intro-text">
           <h1>Find medicine anytime, anywhere</h1>
+          <p className="hero-subtext">Skip the calls and empty-handed trips. Meditrac connects you with verified local pharmacy stock in real time.</p>
         </div>
-        <div className="search-container">
-          <search className="search-bar">
-            <input type="text" placeholder="Search products......" />
-          </search>
-        </div>
+        <Link to="/register" className="get-started-btn">Get Started</Link>
       </header>
 
       <main>
@@ -145,7 +142,7 @@ export default function HomePage() {
       <footer className="footer-container">
         <div className="footer-content">
           <div className="footer-brand">
-            <span className="footer-logo-text"><span className="brand-cursive-m">M</span>editrac</span>
+            <img className="footer-logo" src="/logos/logo.png" alt="Meditrac logo" />
             <p>Your neighborhood pharmacy navigator.</p>
           </div>
           <div className="footer-links-column">
