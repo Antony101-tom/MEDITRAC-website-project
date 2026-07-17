@@ -5,7 +5,11 @@
         width: 100%;
         min-height: 100vh;
         overflow-x: hidden;
-        margin-top: 75px; 
+        /* style.css now adds `padding-top: 64px` on body to clear the fixed
+           navbar (added for the home page hero). That stacks with this
+           margin-top: 75px (leftover from before body had any navbar
+           clearance), pushing the dashboard down twice. */
+        margin-top: 11px; 
 }
 
         /* SIDEBAR PANEL */

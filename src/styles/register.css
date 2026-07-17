@@ -25,9 +25,16 @@
            was spilling out past the blue box. Let both grow with content
            instead, and keep the logo vertically centered regardless of the
            final height. */
+        /* style.css now adds `padding-top: 64px` on body to clear the fixed
+           navbar (added for the home page hero). That stacks with this
+           container's own margin-top: 100px (leftover from before body had
+           any navbar clearance), pushing the box down twice. Cancel out the
+           overlap here instead of touching the global rule the home page
+           relies on. */
 .main-auth-container {
     height: auto;
     min-height: 600px;
+    margin-top: 36px;
     padding-bottom: 30px;
 }
 .auth-container {
