@@ -1,14 +1,10 @@
 /* DASHBOARD LAYOUT GRID */
-body {
+.dashboard-container {
         background-color: #f4f7fa;
         display: flex;
-        min-height: 100vh;
-        overflow-x: hidden; 
-}
-        
-.dashboard-container {
-        display: flex;
         width: 100%;
+        min-height: 100vh;
+        overflow-x: hidden;
         margin-top: 75px; 
 }
 
@@ -245,3 +241,106 @@ body {
         width: fit-content; 
 }
     
+/* --- The rest of these lived in an inline <style> block on user-dashboard.html --- */
+.empty-state {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 40px 20px;
+    color: #718096;
+    font-size: 0.9rem;
+}
+.empty-state strong {
+    display: block;
+    color: #4a5568;
+    font-size: 1rem;
+    margin-bottom: 6px;
+}
+.clear-search-link {
+    color: #2b6cb0;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+.pharmacy-options {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 10px;
+}
+.pharmacy-option {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    background: #f7fafc;
+    border: 1px solid #edf2f7;
+    border-radius: 8px;
+    flex-wrap: wrap;
+}
+.po-info strong { display: block; color: #2d3748; font-size: 0.9rem; }
+.po-info .po-sub { display: block; color: #a0aec0; font-size: 0.78rem; margin-top: 2px; }
+.po-stock { font-size: 0.8rem; font-weight: 600; color: #2d3748; white-space: nowrap; }
+.po-stock.low { color: #dd6b20; }
+.track-btn {
+    background: #2b6cb0;
+    color: #fff;
+    border: none;
+    padding: 8px 14px;
+    border-radius: 6px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+}
+.track-btn:hover { background: #235a94; }
+.track-btn.tracked {
+    background: #c6f6d5;
+    color: #22543d;
+    cursor: default;
+}
+.untrack-btn {
+    background: #fed7d7;
+    color: #822727;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+.multi-pharmacy-note {
+    font-size: 0.75rem;
+    color: #a0aec0;
+    margin-top: 2px;
+}
+.toast {
+    position: fixed; bottom: 24px; right: 24px; background: #2d3748; color: #fff;
+    padding: 12px 18px; border-radius: 8px; font-size: 0.85rem; z-index: 1100;
+    opacity: 0; transform: translateY(10px); transition: all 0.25s ease; pointer-events: none;
+}
+.toast.show { opacity: 1; transform: translateY(0); }
+.leaflet-popup-content { font-size: 0.85rem; }
+
+.panel {
+    background: white;
+    padding: 30px;
+    border-radius: 16px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.01);
+}
+
+.panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.panel-header h3 {
+    font-size: 1.3rem;
+    color: #2d3748;
+    font-weight: 700;
+}

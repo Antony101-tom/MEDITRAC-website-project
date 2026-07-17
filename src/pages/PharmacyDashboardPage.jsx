@@ -1,0 +1,201 @@
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import Navbar from '../components/Navbar';
+import AddMedicationModal from '../components/AddMedicationModal';
+import PharmacyLocationPicker from '../components/PharmacyLocationPicker';
+import { getSession, loadAccounts, findAccount, updateAccountCoords } from '../utils/accounts';
+import { loadAllMedications, saveMedications, LOW_STOCK_THRESHOLD } from '../utils/medications';
+import '../styles/pharmacy.css';
+
+export default function PharmacyDashboardPage() {
+  const [searchParams] = useSearchParams();
+  useEffect(() => { document.title = 'Pharmacy Control Center - Meditrac'; }, []);
+  const session = getSession();
+
+  // Prefers ?name=/?branch= (fresh login/signup redirect), then falls back
+  // to the saved session. No fake fallback name/branch — if neither is
+  // available this is an unauthenticated visit.
+  const pharmacyName = searchParams.get('name') || (session && session.type === 'pharmacy' ? session.name : null) || 'Partner Pharmacy';
+  const defaultBranch = searchParams.get('branch') || '';
+
+  const [refreshTick, setRefreshTick] = useState(0);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [toast, setToast] = useState('');
+
+  // Pharmacies no longer pin their location during registration — they do
+  // it here instead, once, right after signing up (or any time later).
+  const account = useMemo(
+    () => (session && session.type === 'pharmacy' ? findAccount(loadAccounts(), 'pharmacy', session.email) : null),
+    [session, refreshTick]
+  );
+  const hasPin = !!(account && account.latitude != null && account.longitude != null);
+  const [draftPin, setDraftPin] = useState(null);
+
+  // Stable identity — passing a fresh inline function on every render would
+  // make PharmacyLocationPicker's effect see a new `onChange` and tear the
+  // map down/rebuild it after every single click (setDraftPin triggers a
+  // re-render → new inline fn → effect cleanup mid-click → Leaflet's drag
+  // state gets confused and the cursor sticks in "grab" instead of dropping
+  // the pin). setDraftPin itself is stable, so this callback is too.
+  const handlePinChange = useCallback((lat, lng) => setDraftPin({ lat, lng }), []);
+
+  function savePin() {
+    if (!draftPin || !session) return;
+    updateAccountCoords('pharmacy', session.email, draftPin.lat, draftPin.lng);
+    setDraftPin(null);
+    setRefreshTick((t) => t + 1);
+    showToast('Pharmacy location saved — patients can now see how far they are from you.');
+  }
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- refreshTick is a deliberate cache-buster, not a real dependency
+  const allMeds = useMemo(() => loadAllMedications(), [refreshTick]);
+  const meds = useMemo(() => allMeds.filter((m) => m.pharmacy === pharmacyName), [allMeds, pharmacyName]);
+
+  function showToast(msg) {
+    setToast(msg);
+    setTimeout(() => setToast(''), 2500);
+  }
+
+  function handleSave(newMedFields) {
+    const newMed = { id: 'm' + Date.now(), pharmacy: pharmacyName, ...newMedFields };
+    const all = loadAllMedications();
+    all.push(newMed);
+    saveMedications(all);
+    setRefreshTick((t) => t + 1);
+    setModalOpen(false);
+    showToast(`${newMed.name} added to your live inventory.`);
+  }
+
+  function updateStock(id) {
+    const all = loadAllMedications();
+    const med = all.find((m) => m.id === id && m.pharmacy === pharmacyName);
+    if (!med) return;
+    const next = prompt(`Update shelf quantity for ${med.name}:`, med.quantity);
+    if (next === null) return;
+    const parsed = Number(next);
+    if (Number.isNaN(parsed) || parsed < 0) {
+      alert('Please enter a valid quantity.');
+      return;
+    }
+    med.quantity = parsed;
+    saveMedications(all);
+    setRefreshTick((t) => t + 1);
+    showToast(`${med.name} stock updated to ${parsed} ${med.unit}.`);
+  }
+
+  return (
+    <>
+      <Navbar variant="dashboard" title="Partner Terminal" status="Store Profile Live" statusColor="#319795" />
+
+      <div className="dashboard-container">
+        <aside className="sidebar">
+          <a href="#" className="sidebar-link active"> Manage Stock</a>
+          <a href="#" className="sidebar-link"> Reservations <span style={{ background: '#e53e3e', color: 'white', fontSize: '0.75rem', padding: '2px 6px', borderRadius: '10px', marginLeft: 'auto' }}>3</span></a>
+          <a href="#" className="sidebar-link"> Pharmacy Profile</a>
+          <a href="#" className="sidebar-link"> Analytics Reports</a>
+          <hr style={{ border: 0, borderTop: '1px solid #edf2f7', margin: '15px 0' }} />
+          <a href="#" className="sidebar-link"> Settings</a>
+        </aside>
+
+        <main className="main-content">
+          <div className="welcome-banner">
+            <h1>Welcome back, {pharmacyName}!</h1>
+            <p>Keep your shelf metrics precise to streamline walk-in patient processing tracks seamlessly.</p>
+          </div>
+
+          {!hasPin && (
+            <div className="panel" style={{ marginBottom: '35px' }}>
+              <div className="panel-header">
+                <h3>Pin Your Pharmacy's Location</h3>
+                <small style={{ color: '#718096', fontSize: '0.8rem' }}>
+                  This is how patients will see how far they are from you — you only need to do this once.
+                </small>
+              </div>
+              <PharmacyLocationPicker onChange={handlePinChange} height="420px" />
+              <button
+                className="submit-btn"
+                style={{ marginTop: '14px', width: 'auto', padding: '10px 24px' }}
+                disabled={!draftPin}
+                onClick={savePin}
+              >
+                Save Location
+              </button>
+            </div>
+          )}
+
+          <div className="metrics-grid">
+            <div className="p-card">
+              <span>Profile Traffic Today</span>
+              <h2>142</h2>
+              <p> +18% vs yesterday</p>
+            </div>
+            <div className="p-card">
+              <span>Search Leads Routed</span>
+              <h2>38 Patients</h2>
+              <p> Active navigation tracks</p>
+            </div>
+            <div className="p-card">
+              <span>Catalog Coverage</span>
+              <h2>{meds.length === 0 ? '0' : meds.length}</h2>
+              <p style={{ color: '#319795' }}>{meds.length === 0 ? 'No active formulations yet' : `${meds.length} active formulations`}</p>
+            </div>
+          </div>
+
+          <div className="panel">
+            <div className="panel-header">
+              <h3>Pharmacy Shelf Inventory List</h3>
+              <div className="panel-actions">
+                <button onClick={() => setModalOpen(true)}>+ Add New Medication</button>
+              </div>
+            </div>
+
+            <div className="data-table-wrapper">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Medication Specifications</th>
+                    <th>Classification Group</th>
+                    <th>Shelf Quantity Status</th>
+                    <th>Retail Unit Price</th>
+                    <th>System Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {meds.length === 0 ? (
+                    <tr>
+                      <td colSpan="5" style={{ textAlign: 'center', padding: '36px 20px', color: '#a0aec0' }}>
+                        No medications added yet. Click "+ Add New Medication" above to get started.
+                      </td>
+                    </tr>
+                  ) : (
+                    meds.map((med) => {
+                      const isLow = Number(med.quantity) <= LOW_STOCK_THRESHOLD;
+                      return (
+                        <tr key={med.id}>
+                          <td><strong>{med.name}</strong><br /><small style={{ color: '#a0aec0' }}>{med.form || ''}</small></td>
+                          <td>{med.category || ''}</td>
+                          <td><span className={`status-badge ${isLow ? 'low' : 'high'}`}>{isLow ? 'Low Stock' : 'In Stock'} ({med.quantity} {med.unit || ''})</span></td>
+                          <td style={{ fontWeight: 600, color: '#2d3748' }}>KES {Number(med.price).toLocaleString()}</td>
+                          <td><button className="action-edit-btn" onClick={() => updateStock(med.id)}>Update Stock</button></td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </main>
+      </div>
+
+      <AddMedicationModal
+        open={modalOpen}
+        defaultBranch={defaultBranch}
+        onClose={() => setModalOpen(false)}
+        onSave={handleSave}
+      />
+
+      <div className={`toast ${toast ? 'show' : ''}`}>{toast}</div>
+    </>
+  );
+}

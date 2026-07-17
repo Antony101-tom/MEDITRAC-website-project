@@ -1,141 +1,66 @@
-# MediTrac — Medicine Availability Tracker
+# MediTrac (React + Vite)
 
-## Problem
+This is the React port of the MediTrac static prototype. Functionally it's the same app — same `localStorage` data model, same pages — just restructured into components/routes instead of separate HTML files with inline `<script>` blocks.
 
-Patients across Kenya routinely waste time and resources trying to find medicine. There is no price transparency between pharmacies, critical treatment delays occur when a needed drug is out of stock, and people end up "pharmacy hopping" — calling pharmacies one by one or asking around in WhatsApp groups, with no central way to check stock or prices.
+## What changed vs. the static version
 
-## Solution
-
-MediTrac gives real-time, searchable visibility into medicine availability and pricing across partner pharmacies:
-
-- **Search & compare** — search a drug and see every partner pharmacy that stocks it, sorted by price.
-- **Pharmacy self-service** — pharmacies manage their own shelf inventory (add medications, update stock levels) from their own dashboard.
-- **Patient tracking** — patients can "track" a medicine/pharmacy combo and see it surfaced on their dashboard.
-
-## Unique Value Proposition
-
-**"Don't travel blind."** MediTrac is "Google Maps for medicine" — fast, location-aware access to where a medicine is actually available, instead of guessing or visiting pharmacies one at a time.
-
-## Unfair Advantage
-
-- Pharmacy partnerships and exclusive API access to pharmacy inventory systems.
-- First-mover advantage in building a structured medicine-availability data layer for the region.
-
-## Customer Segments
-
-- Chronic patients managing ongoing prescriptions
-- Caregivers
-- Busy professionals
-- Parents of young children
-
-**Early adopters:** people managing chronic conditions who need monthly refills, and parents of young children.
-
-## Channels
-
-- Local clinics and hospitals
-- Social media health communities
-- SEO ("is [Drug] in stock?" search intent)
-
-## Revenue Streams
-
-- Subscriptions
-- Referral fees
-- Premium alerts (notify me when a medicine is back in stock)
-- Data insights (aggregated, anonymized demand/availability trends sold to partners)
-
-## Cost Structure
-
-- Cloud hosting
-- Marketing
-- Compliance/legal fees for health data privacy
-
-## Key Metrics
-
-- Daily / monthly active users
-- Search success rate (% of searches resolving to in-stock medicine)
-- Pharmacy/partner growth
-
-## Trust & Safety: Counterfeit Medicine
-
-A key open question for the platform: **how do we ensure no counterfeit medicine is tracked or sold through MediTrac?** Planned safeguards include:
-
-- Only onboarding verified, licensed pharmacies as data partners (no unverified/individual listings).
-- Periodic verification/audit of partner pharmacy licenses.
-- MediTrac displays availability and connects users to licensed pharmacies — it does not process medicine sales directly, which limits exposure to counterfeit transactions but still requires partner vetting.
-
-This is an area we'll keep iterating on as the platform grows (see Roadmap).
-
----
-
-## Current Status: Frontend Prototype (no backend yet)
-
-This build is a **static, frontend-only prototype**. There is no server and no database right now — everything (accounts, sessions, and the medication inventory) is stored in the browser's `localStorage`. This is intentional at this stage: it lets the full user flow (register → log in → manage/search stock) be demoed and tested without standing up a backend.
-
-> A previous version of this project had a partially-wired Postgres + Express backend (`server.js`, SQL schema files, `/api/medications` route) alongside this localStorage prototype, and `login.html` was calling that backend directly. That created two conflicting sources of truth — a real login page hitting a database that had no matching accounts, and a register page writing to `localStorage` that the login page never read from. That backend layer has been removed for now so there is a single, working, self-consistent app. It can be reintroduced later (see Roadmap) once the localStorage data model is stable and worth persisting server-side.
-
-### How It Works
-
-1. A user (patient or pharmacy) visits `register.html`, picks an account type, and either signs up or logs in. Both actions read/write a `meditrac_accounts` list and a `meditrac_session` object in `localStorage`.
-2. On success, they're redirected to `user-dashboard.html` or `pharmacy-dashboard.html` depending on account type.
-3. Pharmacies add/update medications on their dashboard, stored under the shared `meditrac_medications` key in `localStorage`, scoped to that pharmacy's name.
-4. Patients search `meditrac_medications` on their dashboard, see matching drugs across pharmacies sorted by price, and can "track" specific listings (stored per-patient under `meditrac_tracked_<email>`).
-5. "Log Out" clears `meditrac_session` and returns to the homepage.
-
-### Tech Stack
-
-- **Frontend:** Static HTML/CSS/vanilla JS
-- **"Database":** Browser `localStorage` (no server, no persistence beyond the browser/device)
-
-### Project Structure
-
-```
-MEDITRAC-website-project/
-├── logos/                    # Site images/icons (logo, favicon, benefit icons)
-├── index.html                # Landing page (search, benefits, about us)
-├── style.css                 # Shared site styles
-├── register.html             # Single entry point for sign up AND log in (user + pharmacy)
-├── register.css              # Register page styles
-├── user-dashboard.html       # Patient dashboard: search + track medicine
-├── user-dashboard.css
-├── pharmacy-dashboard.html   # Pharmacy dashboard: manage shelf inventory
-├── pharmacy.css
-└── README.md
-```
-
-### `localStorage` Keys
-
-| Key | Shape | Purpose |
-|---|---|---|
-| `meditrac_accounts` | `Array<{id, type, name, email, location, password, createdAt}>` | All registered accounts (user + pharmacy) |
-| `meditrac_session` | `{type, name, email}` | Currently logged-in account |
-| `meditrac_medications` | `Array<{id, name, form, category, quantity, unit, price, pharmacy, branch}>` | All medications across all pharmacies |
-| `meditrac_tracked_<email>` | `Array<string>` (medication ids) | A patient's tracked listings (falls back to `meditrac_tracked_guest` if not logged in) |
+- **Routing**: `index.html` / `register.html` / `user-dashboard.html` / `pharmacy-dashboard.html` are now routes (`/`, `/register`, `/dashboard/user`, `/dashboard/pharmacy`) via `react-router-dom`, rendered by a single `index.html` entry point.
+- **Components**: shared UI (navbar, medicine cards, pharmacy option rows, the add-medication modal, the two Leaflet maps) are now reusable components under `src/components/`.
+- **State**: DOM manipulation (`getElementById`, `innerHTML`) is replaced with React state/props. All the `localStorage` keys and shapes are **unchanged** — `meditrac_accounts`, `meditrac_session`, `meditrac_medications`, `meditrac_tracked_<email>` — so nothing about how data is stored is different, only how it's read/rendered.
+- **Leaflet**: still plain `leaflet`, wired up via `useRef`/`useEffect` (not `react-leaflet`) since that's the most direct, testable port of the original map logic.
+- **Build tooling**: this now needs a build step (Vite) — run `npm run dev` instead of opening an `.html` file directly.
 
 ## Getting Started
 
-No install or build step needed:
+```bash
+npm install
+npm run dev
+```
 
-1. Clone the repo:
-   ```
-   git clone https://github.com/Antony101-tom/MEDITRAC-website-project.git
-   cd MEDITRAC-website-project
-   ```
-2. Open `index.html` directly in a browser, or serve the folder with any static server (e.g. VS Code Live Server) so relative paths resolve cleanly.
-3. Register a pharmacy account, add some medications, then register a patient account and search for them.
+Then visit the printed local URL (typically `http://localhost:5173`).
 
-Note: since data lives in `localStorage`, it's per-browser — a pharmacy's inventory added in one browser won't show up for a patient searching in a different browser/device. That's the main limitation a real backend would solve (see Roadmap).
+To produce a production build:
 
-## Roadmap
+```bash
+npm run build
+npm run preview   # serve the built dist/ folder locally to sanity check it
+```
 
-- [ ] Reintroduce a real backend (Express + Postgres) once the localStorage data model is finalized, so data isn't per-browser
-- [ ] Wire `register.html` / dashboards to backend API routes instead of `localStorage`
-- [ ] Implement map-based search UI using pharmacy location data
-- [ ] Build pharmacy verification process (counterfeit prevention)
-- [ ] Add premium "back-in-stock" alert subscriptions
-- [ ] Launch in a pilot area (local clinics + community outreach)
-- [ ] Expand partner pharmacy network
-- [ ] Add data insights dashboard for partners
+## Project Structure
 
-## License
+```
+meditrac-react/
+├── index.html                  # Vite entry point (single page for the whole app)
+├── public/
+│   └── logos/                  # Put your logo/icon assets here (not included in this port)
+├── src/
+│   ├── main.jsx                 # App bootstrap + BrowserRouter
+│   ├── App.jsx                  # Route definitions
+│   ├── index.css                # Imports the global stylesheet
+│   ├── pages/
+│   │   ├── HomePage.jsx             # was index.html
+│   │   ├── RegisterPage.jsx         # was register.html
+│   │   ├── UserDashboardPage.jsx    # was user-dashboard.html
+│   │   └── PharmacyDashboardPage.jsx # was pharmacy-dashboard.html
+│   ├── components/
+│   │   ├── Navbar.jsx
+│   │   ├── PharmacyLocationPicker.jsx  # Leaflet pin-picker used at pharmacy sign-up
+│   │   ├── ResultsMap.jsx              # Leaflet results map on the patient dashboard
+│   │   └── AddMedicationModal.jsx
+│   ├── utils/
+│   │   ├── accounts.js          # accounts/session localStorage helpers
+│   │   ├── medications.js       # medications/tracked-ids localStorage helpers
+│   │   ├── geo.js                # haversine distance + escapeHtml (for Leaflet popups)
+│   │   └── useGeolocation.js    # browser geolocation hook
+│   └── styles/                  # the original CSS files, ported as-is (plus the rules
+│                                   that used to live in inline <style> blocks)
+```
 
-*(License Details.)*
+## Important: `public/logos/`
+
+The original site referenced a `logos/` folder (logo, favicon, icons, illustrations) that wasn't part of this port since those image files weren't provided. Drop that same `logos/` folder into `public/logos/` here and everything will resolve exactly like before (`/logos/logo.png`, `/logos/favicon.png`, etc.) — no code changes needed, Vite serves `public/` at the site root.
+
+## Notes
+
+- Same as the static version: data lives in `localStorage`, so it's per-browser. A pharmacy's inventory won't show up for a patient in a different browser/device — see the static README's Roadmap for when a real backend gets reintroduced.
+- Only pharmacies registered through this app have map coordinates (`latitude`/`longitude` on their account). Any pre-existing test accounts created before the map feature won't have a pin or a distance — they'll just show "Distance unknown" and sort after the pharmacies that do.
