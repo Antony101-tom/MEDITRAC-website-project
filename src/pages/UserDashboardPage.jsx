@@ -119,7 +119,6 @@ export default function UserDashboardPage() {
       <div className="dashboard-container">
         <aside className="sidebar">
           <a href="#" className="sidebar-link active"> Find Medicine</a>
-          <a href="#" className="sidebar-link"> My Prescriptions</a>
           <hr style={{ border: 0, borderTop: '1px solid #edf2f7', margin: '15px 0' }} />
         </aside>
 

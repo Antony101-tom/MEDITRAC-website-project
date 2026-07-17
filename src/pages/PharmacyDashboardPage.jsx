@@ -90,11 +90,7 @@ export default function PharmacyDashboardPage() {
       <div className="dashboard-container">
         <aside className="sidebar">
           <a href="#" className="sidebar-link active"> Manage Stock</a>
-          <a href="#" className="sidebar-link"> Reservations <span style={{ background: '#e53e3e', color: 'white', fontSize: '0.75rem', padding: '2px 6px', borderRadius: '10px', marginLeft: 'auto' }}>3</span></a>
-          <a href="#" className="sidebar-link"> Pharmacy Profile</a>
-          <a href="#" className="sidebar-link"> Analytics Reports</a>
           <hr style={{ border: 0, borderTop: '1px solid #edf2f7', margin: '15px 0' }} />
-          <a href="#" className="sidebar-link"> Settings</a>
         </aside>
 
         <main className="main-content">
